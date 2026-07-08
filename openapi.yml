@@ -1,0 +1,1038 @@
+openapi: 3.0.0
+info:
+  title: Track My Tasks API
+  description: |
+    API specification for Track My Tasks service.
+  version: 0.0.0
+  contact:
+    name: Ваше имя или команда
+    email: support@example.com
+    url: https://example.com
+  license:
+    name: AGPL-3.0
+    url: https://opensource.org/licenses/AGPL-3-0
+
+servers:
+  - url: https://api.trackmytasks.org/v1
+    description: Public SaaS instance
+  - url: https://staging-api.trackmytasks.org/v1
+    description: Staging instance
+  - url: http://localhost:8080/v1
+    description: Development instance
+
+tags:
+  - name: Tasks
+    description: Defines endpoints for creating, updating, removing tasks and templates. It's basically just a CRUD.
+  - name: Scheduling
+    description: Defines endpoints for showing current schedule.
+  - name: Grouping
+    description: Defines endpoints for grouping tasks via tag system.
+
+paths:
+  /tasks/templates:
+    get:
+      tags:
+        - Tasks
+      summary: Get all task templates
+      description: Returns paginated collection of task templates
+      operationId: getTemplates
+      parameters:
+        - $ref: "#/components/parameters/PaginationPage"
+        - $ref: "#/components/parameters/PaginationLimit"
+        - $ref: "#/components/parameters/SortingOrder"
+        - in: query
+          name: sort-field
+          schema:
+            $ref: "#/components/schemas/TemplateSortableField"
+          description: By which field results are sorted
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Template'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              examples:
+                default:
+                  summary: Empty response example
+                  value:
+                    data: []
+                    meta:
+                      total: 0
+                      page: 1
+                      limit: 20
+                      totalPages: 0
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+    post:
+      tags:
+        - Tasks
+      summary: Create a template
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateBody'
+            # examples:
+            #   default:
+            #     summary: Example of creation of typical task
+            #     value:
+            #       a: 123
+      responses:
+        '201':
+          description: Resource created
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /tasks/templates/{template_id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get template by id
+      operationId: getTemplateById
+      parameters:
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Id of the template
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+    put:
+      tags:
+        - Tasks
+      summary: Update the template
+      operationId: updateTemplate
+      parameters:
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateBody'
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+    delete:
+      tags:
+        - Tasks
+      summary: Remove the template
+      operationId: deleteTemplate
+      parameters:
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '204':
+          description: Template removed successfully
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Get all tasks
+      description: Returns paginated collection of tasks
+      operationId: getTasks
+      parameters:
+        - $ref: "#/components/parameters/PaginationPage"
+        - $ref: "#/components/parameters/PaginationLimit"
+        - $ref: "#/components/parameters/SortingOrder"
+        - in: query
+          name: sort-field
+          schema:
+            $ref: "#/components/schemas/TaskSortableField"
+          description: By which field results are sorted
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              examples:
+                default:
+                  summary: Empty response example
+                  value:
+                    data: []
+                    meta:
+                      total: 0
+                      page: 1
+                      limit: 20
+                      totalPages: 0
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+    post:
+      tags:
+        - Tasks
+      summary: Create a task
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskBody'
+            examples:
+              default:
+                summary: Example of creation of typical task
+                value:
+                  a: 123
+      responses:
+        '201':
+          description: Resource created
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /tasks/{task_id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get task by id
+      operationId: getTaskById
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Id of the task
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+    put:
+      tags:
+        - Tasks
+      summary: Update the task
+      operationId: updateTask
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskBody'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+    delete:
+      tags:
+        - Tasks
+      summary: Remove the task
+      operationId: deleteTask
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '204':
+          description: Resource removed
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /tasks/tags:
+    get:
+      tags:
+        - Grouping
+      summary: Get all tags
+      description: Returns paginated collection of tags
+      operationId: getTags
+      parameters:
+        - $ref: "#/components/parameters/PaginationPage"
+        - $ref: "#/components/parameters/PaginationLimit"
+        - $ref: "#/components/parameters/SortingOrder"
+        - in: query
+          name: sort-field
+          schema:
+            $ref: "#/components/schemas/TagSortableField"
+          description: By which field results are sorted
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              examples:
+                default:
+                  summary: Empty response example
+                  value:
+                    data: []
+                    meta:
+                      total: 0
+                      page: 1
+                      limit: 20
+                      totalPages: 0
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+    post:
+      tags:
+        - Grouping
+      summary: Create a tag
+      operationId: createTag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagBody'
+            # examples:
+            #   default:
+            #     summary: Example of creation of typical tag
+            #     value:
+            #       a: 123
+      responses:
+        '201':
+          description: Resource created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the created tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /tasks/tags/{tag_id}:
+    get:
+      tags:
+        - Grouping
+      summary: Get tag by id
+      operationId: getTagById
+      parameters:
+        - in: path
+          name: tag_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Id of the tag
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+    put:
+      tags:
+        - Grouping
+      summary: Update the tag
+      operationId: updateTag
+      parameters:
+        - in: path
+          name: tag_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tag'
+      responses:
+        '200':
+          description: Tag updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Grouping
+      summary: Remove the tag
+      operationId: deleteTag
+      parameters:
+        - in: path
+          name: tag_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '204':
+          description: Resource removed successfully
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+components:
+  parameters:
+    PaginationPage:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    PaginationLimit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Maximum number of elements in returned collection
+
+    SortingOrder:
+      in: query
+      name: sort
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+      description: By which order results are sorted
+
+  schemas:
+    Template:
+      allOf:
+        - $ref: "#/components/schemas/IdentifiableResource"
+        - $ref: "#/components/schemas/TemplateBody"
+    
+    TemplateBody:
+      type: object
+      required:
+        - name
+        - description
+        - starts_at
+        - ends_at
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 64
+          description: Name of the task template
+          example: 123
+        description:
+          type: string
+          minLength: 2
+          description: Description of the task template
+        tags:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: List of tags ids assigned to the task
+        starts_at:
+          type: string
+          format: date-time
+          description: Time when task should be started
+        ends_at:
+          type: string
+          format: date-time
+          description: Time when task should be ended
+        scheduling:
+          oneOf:
+            - $ref: "#/components/schemas/TemplateDailyOptions"
+            - $ref: "#/components/schemas/TemplateWeeklyOptions"
+            - $ref: "#/components/schemas/TemplateMonthlyOptions"
+            - $ref: "#/components/schemas/TemplateOneshotOptions"
+            - $ref: "#/components/schemas/TemplateEvenDaysOptions"
+            - $ref: "#/components/schemas/TemplateOddDaysOptions"
+          discriminator:
+            propertyName: type
+            mapping:
+              daily: "#/components/schemas/TemplateDailyOptions"
+              weekly: "#/components/schemas/TemplateWeeklyOptions"
+              monthly: "#/components/schemas/TemplateMonthlyOptions"
+              oneshot: "#/components/schemas/TemplateOneshotOptions"
+              even-days: "#/components/schemas/TemplateEvenDaysOptions"
+              odd-days: "#/components/schemas/TemplateOddDaysOptions"
+
+    TemplateDailyOptions:
+      type: object
+      properties:
+        exclude:
+          type: array
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/DayOfWeek"
+              - $ref: "#/components/schemas/DayDateWithWildcards"
+
+    TemplateWeeklyOptions:
+      type: object
+      required:
+        - include
+      properties:
+        include:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayOfWeek" #политика переносов в случае нерабочих дней
+        exclude:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayOfWeekDateWithWildcards"
+
+    TemplateMonthlyOptions:
+      type: object
+      required:
+        - include
+      properties:
+        include:
+          type: array
+          items:
+            type: integer # что если в месяце меньше чем 31 день?
+            minimum: 1
+            maximum: 31
+        exclude:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayDateWithWildcards"
+
+    TemplateOneshotOptions:
+      type: object
+      required:
+        - date
+      properties:
+        dates:
+          type: array
+          items:
+            type: string
+            format: date
+
+    TemplateEvenDaysOptions:
+      type: object
+      properties:
+        exclude:
+          type: array
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/DayOfWeek"
+              - $ref: "#/components/schemas/DayDateWithWildcards"
+
+    TemplateOddDaysOptions:
+      type: object
+      properties:
+        exclude:
+          type: array
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/DayOfWeek"
+              - $ref: "#/components/schemas/DayDateWithWildcards"
+
+    TemplateSortableField:
+      type: string
+      enum: [id, name, description, starts_at, ends_at]
+      default: id
+
+    Task:
+      allOf:
+        - $ref: "#/components/schemas/IdentifiableResource"
+        - $ref: "#/components/schemas/TaskBody"
+    
+    TaskBody:
+      type: object
+      required:
+        - template_id
+      properties:
+        template_id:
+          type: integer
+          description: Id of the template from which task was created
+          example: 3827
+        status:
+          type: string
+          enum: ['pending', 'running', 'finished', "cancelled"]
+          description: Current state of the task
+        notes:
+          type: string
+          minLength: 2
+          description: Additional notes about the task
+        started_at:
+          type: string
+          format: date-time
+          description: Timestamp when task was started
+        ended_at:
+          type: string
+          format: date-time
+          description: Timestamp when task was ended
+
+    TaskSortableField:
+      type: string
+      enum: [id, template_id, status, notes, started_at, ended_at]
+      default: id
+
+    Tag:
+      allOf:
+        - $ref: "#/components/schemas/IdentifiableResource"
+        - $ref: "#/components/schemas/TagBody"
+
+    TagBody:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 64
+          description: Name of the task
+          example: 123
+        type:
+          type: string
+          enum: ['predefined', 'user-defined']
+          description: Type of the tag
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp when tag was removed
+
+    TagSortableField:
+      type: string
+      enum: [id, name, type]
+      default: id
+
+    PaginationMeta:
+      type: object
+      required:
+        - total
+        - page
+        - limit
+        - total_pages
+      properties:
+        total:
+          type: integer
+          description: Total number of elements
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Maximum number of elements per page
+        total_pages:
+          type: integer
+          description: Total number of available pages
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+    
+    DayOfWeek:
+      type: string
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+    DayDateWithWildcards:
+      type: string
+      description: Any other date in format DD-MM-YYYY with or without wildcards
+      # examples:
+      #   - summary: Specific day excluded
+      #     value: 01-01-2026
+      #     description: This method allows to exclude specific day at specific month at specific year
+      #   - summary: Specific day excluded every year
+      #     value: 01-01-*
+      #     description: This method allows to exclude specific day at specific month every year
+      #   - summary: Specific day excluded every month every year
+      #     value: 01-*-*
+      #     description: This method allows to exclude specific day every month every year
+      #   - summary: Every day excluded at specific month every year
+      #     value: *-01-*
+      #     description: This method allows to exclude every day at specific month every year
+
+    DayOfWeekDateWithWildcards:
+      type: string
+      description: The same as `#/components/schemas/DayDateWithWildcards` but DD means day of week.
+      # examples:
+      #   - summary: Every sunday in first month of the year excluded
+      #     value: 00-01-2026
+      #   - summary: Every monday every month of the year excluded
+      #     value: 01-*-2026
+      #   - summary: Every day of the month of the year is excluded
+      #     value: *-01-2026
+
+    IdentifiableResource:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          description: Unique resource identifier
+          # examples:
+          #   - 1
+          #   - 18429485572
+
+  responses:
+    BadRequest:
+      description: Bad request returned if client provided data in wrong format.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+    Unauthorized:
+      description: Not authorized returned if client need to authenticate to access the endpoint.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Forbidden:
+      description: Forbidden returned if client does not have permissions to access the endpoint.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Not found returned if client requested a resource that was removed or was not yet created.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    MethodNotAllowed:
+      description: Method not allowed returned if client tries to access the endpoint using wrong http method.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+            # todo: allow header
+
+    RateLimited:
+      description: Too many requests returned if client ran out of request quota.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServerError:
+      description: Unexpected internal error returned if something went wrong at server side.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

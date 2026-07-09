@@ -62,3 +62,12 @@ func RegisterTagRoutes(router *gin.RouterGroup, h *handlers.TagHandler) {
 		tags.DELETE("/:tag_id", h.DeleteTag)
 	}
 }
+
+func RegisterSchedulingRoutes(router *gin.RouterGroup, h *handlers.SchedulingHandler) {
+	tags := router.Group("/scheduling")
+	{
+		tags.POST("/connectivity-test", h.ConnectivityTest)
+		tags.POST("/daily-cron-hook", h.DailyCronHook)
+		tags.GET("/calendar", h.GetCalendar)
+	}
+}

@@ -1,7 +1,5 @@
 package models
 
-// ErrorResponse is the generic error envelope used across the API,
-// mirroring the `ErrorResponse` schema from the OpenAPI spec.
 type ErrorResponse struct {
 	Type     string `json:"type,omitempty"`
 	Title    string `json:"title,omitempty"`
@@ -10,21 +8,16 @@ type ErrorResponse struct {
 	Instance string `json:"instance,omitempty"`
 }
 
-// ValidationErrorDetail describes a single field-level validation failure.
 type ValidationErrorDetail struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
 
-// ValidationErrorResponse extends ErrorResponse with a list of per-field
-// errors, mirroring the `ValidationErrorResponse` schema.
 type ValidationErrorResponse struct {
 	ErrorResponse
 	Errors []ValidationErrorDetail `json:"errors,omitempty"`
 }
 
-// PaginationMeta mirrors the `PaginationMeta` schema returned alongside
-// paginated collections.
 type PaginationMeta struct {
 	Total      int `json:"total"`
 	Page       int `json:"page"`

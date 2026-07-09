@@ -13,9 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"github.com/chop1k/medods-test/internal/config"
+	"github.com/chop1k/medods-test/internal/database"
 )
 
 type FileInfo struct {
@@ -31,13 +30,7 @@ type FileInfo struct {
 // TODO: wire in a migration tool (e.g. golang-migrate/migrate) and run all
 // pending migrations from migrationsPath against dbCfg.DSN().
 func Run(dbCfg config.DatabaseConfig, migrationsPath string) error {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s", dbCfg.User, dbCfg.Password, dbCfg.Host, dbCfg.Port, dbCfg.Name, dbCfg.SSLMode)
-
-	db, err := sql.Open("pgx", dsn)
-
-	if err != nil {
-		return err
-	}
+	db, err := database.Connect(dbCfg)
 
 	migrations, err := parseAndReadFiles(migrationsPath)
 

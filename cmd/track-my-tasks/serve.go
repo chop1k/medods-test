@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"flag"
 	"log"
@@ -12,29 +13,33 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/chop1k/medods-test/internal/config"
+	"github.com/chop1k/medods-test/internal/database"
 	"github.com/chop1k/medods-test/internal/handlers"
 	"github.com/chop1k/medods-test/internal/routes"
 )
 
-// runServe implements the `serve` command: it builds the Gin router and
-// starts an HTTP server, shutting down gracefully on SIGINT/SIGTERM.
 func runServe(args []string) {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	serverCfg := config.RegisterServerFlags(fs)
-	dbCfg := config.RegisterDatabaseFlags(fs) // reserved for handlers/services once DB wiring lands
+	dbCfg := config.RegisterDatabaseFlags(fs)
+
 	if err := fs.Parse(args); err != nil {
 		fatal("serve: failed to parse flags: %v", err)
 	}
 
-	_ = dbCfg // TODO: pass to a database.Connect(*dbCfg) call once implemented, and inject into handlers
+	db, err := database.Connect(*dbCfg)
 
-	startServer(*serverCfg)
+	if err != nil {
+		fatal("serve: failed to connect to db: %v", err)
+	}
+
+	startServer(*serverCfg, db)
 }
 
 // startServer builds the router and blocks until the server exits or a
 // shutdown signal is received.
-func startServer(serverCfg config.ServerConfig) {
-	router := newRouter()
+func startServer(serverCfg config.ServerConfig, db *sql.DB) {
+	router := newRouter(db)
 
 	srv := &http.Server{
 		Addr:         serverCfg.Addr(),
@@ -67,13 +72,16 @@ func startServer(serverCfg config.ServerConfig) {
 
 // newRouter wires up the application's Gin router. Kept separate from
 // startServer so it can also be reused directly by tests.
-func newRouter() *gin.Engine {
+func newRouter(db *sql.DB) *gin.Engine {
 	router := gin.Default()
 
+	templateStorage := database.NewTemplateStorage(db)
+
 	v1 := router.Group("/v1")
-	routes.RegisterTemplateRoutes(v1, handlers.NewTemplateHandler())
+	routes.RegisterTemplateRoutes(v1, handlers.NewTemplateHandler(templateStorage))
 	routes.RegisterTaskRoutes(v1, handlers.NewTaskHandler())
 	routes.RegisterTagRoutes(v1, handlers.NewTagHandler())
+	routes.RegisterSchedulingRoutes(v1, handlers.NewSchedulingHandler(templateStorage))
 
 	return router
 }

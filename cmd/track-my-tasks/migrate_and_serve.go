@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/chop1k/medods-test/internal/config"
+	"github.com/chop1k/medods-test/internal/database"
 )
 
 // runMigrateAndServe implements the `migrate-and-serve` command: it applies
@@ -17,6 +18,12 @@ func runMigrateAndServe(args []string) {
 		fatal("migrate-and-serve: failed to parse flags: %v", err)
 	}
 
+	db, err := database.Connect(*dbCfg)
+
+	if err != nil {
+		fatal("serve: failed to connect to db: %v", err)
+	}
+
 	applyMigrations(*dbCfg, *migCfg)
-	startServer(*serverCfg)
+	startServer(*serverCfg, db)
 }

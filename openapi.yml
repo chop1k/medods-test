@@ -913,11 +913,7 @@ components:
         include:
           type: array
           items:
-            $ref: "#/components/schemas/DayOfWeek" #политика переносов в случае нерабочих дней
-        exclude:
-          type: array
-          items:
-            $ref: "#/components/schemas/DayOfWeekDateWithWildcards"
+            $ref: "#/components/schemas/DayOfWeek"
 
     TemplateMonthlyOptions:
       type: object
@@ -927,20 +923,16 @@ components:
         include:
           type: array
           items:
-            type: integer # что если в месяце меньше чем 31 день?
-            minimum: 1
-            maximum: 31
-        exclude:
-          type: array
-          items:
-            $ref: "#/components/schemas/DayDateWithWildcards"
+            oneOf:
+              - $ref: "#/components/schemas/DayOfWeek"
+              - $ref: "#/components/schemas/DayOfMonth"
 
     TemplateOneshotOptions:
       type: object
       required:
         - date
       properties:
-        dates:
+        include:
           type: array
           items:
             type: string
@@ -979,20 +971,28 @@ components:
     TaskBody:
       type: object
       required:
-        - template_id
+        - status
       properties:
         template_id:
           type: integer
           description: Id of the template from which task was created
           example: 3827
+        moved_task_id:
+          type: integer
+          description: Id of the task from which this task was moved
+          example: 8572
         status:
           type: string
-          enum: ['pending', 'running', 'finished', "cancelled"]
+          enum: ['pending', 'running', 'finished', 'cancelled', 'moved', 'overdue']
           description: Current state of the task
         notes:
           type: string
           minLength: 2
           description: Additional notes about the task
+        date:
+          type: string
+          format: date
+          description: Date that the task was assigned at
         started_at:
           type: string
           format: date-time
@@ -1004,7 +1004,7 @@ components:
 
     TaskSortableField:
       type: string
-      enum: [id, template_id, status, notes, started_at, ended_at]
+      enum: [id, template_id, moved_task_id, status, notes, date, started_at, ended_at]
       default: id
 
     Tag:
@@ -1039,9 +1039,22 @@ components:
       default: id
 
     Calendar:
-      type: array
-      items:
-        $ref: "#/components/schemas/CalendarDay"
+      type: object
+      required:
+        - from
+        - to
+        - days
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarDay"
 
     CalendarDay:
       type: object
@@ -1113,6 +1126,11 @@ components:
     DayOfWeek:
       type: string
       enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    
+    DayOfMonth:
+      type: integer
+      minimum: 1
+      maximum: 31
 
     DayDateWithWildcards:
       type: string
@@ -1130,17 +1148,6 @@ components:
       #   - summary: Every day excluded at specific month every year
       #     value: *-01-*
       #     description: This method allows to exclude every day at specific month every year
-
-    DayOfWeekDateWithWildcards:
-      type: string
-      description: The same as `#/components/schemas/DayDateWithWildcards` but DD means day of week.
-      # examples:
-      #   - summary: Every sunday in first month of the year excluded
-      #     value: 00-01-2026
-      #   - summary: Every monday every month of the year excluded
-      #     value: 01-*-2026
-      #   - summary: Every day of the month of the year is excluded
-      #     value: *-01-2026
 
     IdentifiableResource:
       type: object

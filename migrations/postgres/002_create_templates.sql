@@ -6,11 +6,13 @@ create table "app"."templates" (
     "starts_at" timestamp not null,
     "ends_at" timestamp not null,
 
+    "enabled" boolean not null,
+
     "scheduling" jsonb not null,
 
     constraint "app_templates_id_pkey"
         primary key (id),
     constraint "app_templates_empty_chck" check (
-        name != '' and (description is null or description != '')
+        "name" != '' and ("description" is null or "description" != '')
     )
 );

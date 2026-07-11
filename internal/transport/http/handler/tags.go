@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"net/http"
@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/chop1k/medods-test/internal/models"
-	"github.com/chop1k/medods-test/internal/responses"
 )
 
 type TagHandler struct {
@@ -19,7 +18,7 @@ func NewTagHandler() *TagHandler {
 func (h *TagHandler) GetTags(c *gin.Context) {
 	var query models.ListTagsQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
 		return
 	}
 
@@ -40,7 +39,7 @@ func (h *TagHandler) GetTags(c *gin.Context) {
 func (h *TagHandler) CreateTag(c *gin.Context) {
 	var body models.TagBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
 		return
 	}
 
@@ -59,7 +58,7 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 func (h *TagHandler) GetTagByID(c *gin.Context) {
 	var param models.TagIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
 		return
 	}
 
@@ -72,13 +71,13 @@ func (h *TagHandler) GetTagByID(c *gin.Context) {
 func (h *TagHandler) UpdateTag(c *gin.Context) {
 	var param models.TagIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
 		return
 	}
 
 	var body models.TagBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
 		return
 	}
 
@@ -95,7 +94,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 func (h *TagHandler) DeleteTag(c *gin.Context) {
 	var param models.TagIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
 		return
 	}
 

@@ -1,19 +1,11 @@
-// Command api is the entrypoint for the Track My Tasks HTTP API.
-//
-// Usage:
-//
-//	api serve              Run the HTTP server
-//	api migrate            Run pending database migrations
-//	api migrate-and-serve  Run migrations, then start the HTTP server
-//
-// Every option accepts both a CLI flag and an environment variable; run
-// `api <command> -h` to see the full list for that command.
 package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
+
+	"github.com/chop1k/medods-test/internal/app"
 )
 
 func main() {
@@ -24,13 +16,17 @@ func main() {
 
 	cmd, args := os.Args[1], os.Args[2:]
 
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+
+	slog.SetDefault(logger)
+
 	switch cmd {
 	case "serve":
-		runServe(args)
+		app.Serve(args)
 	case "migrate":
-		runMigrate(args)
-	case "migrate-and-serve":
-		runMigrateAndServe(args)
+		app.Migrate(args)
 	case "-h", "--help", "help":
 		printUsage()
 	default:
@@ -49,14 +45,7 @@ Usage:
 Commands:
   serve              Run the HTTP server
   migrate            Run pending database migrations
-  migrate-and-serve  Run migrations, then start the HTTP server
 
 Run 'api <command> -h' for a full list of flags/env vars for that command.
 `)
-}
-
-// fatal logs a fatal error and exits. Kept as a single choke point so
-// commands report failures consistently.
-func fatal(format string, args ...any) {
-	log.Fatalf(format, args...)
 }

@@ -17,9 +17,12 @@ const (
 type TaskStatus string
 
 const (
-	TaskStatusPending  TaskStatus = "pending"
-	TaskStatusRunning  TaskStatus = "running"
-	TaskStatusFinished TaskStatus = "finished"
+	TaskStatusPending   TaskStatus = "pending"
+	TaskStatusRunning   TaskStatus = "running"
+	TaskStatusFinished  TaskStatus = "finished"
+	TaskStatusCancelled TaskStatus = "cancelled"
+	TaskStatusMoved     TaskStatus = "moved"
+	TaskStatusOverdue   TaskStatus = "overdue"
 )
 
 type TaskBody struct {

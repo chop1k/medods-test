@@ -1,14 +1,12 @@
-package handlers
+package handler
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/chop1k/medods-test/internal/database"
 	"github.com/chop1k/medods-test/internal/models"
-	"github.com/chop1k/medods-test/internal/scheduling"
 )
 
 type SchedulingHandler struct {
@@ -34,8 +32,8 @@ func (h *SchedulingHandler) DailyCronHook(c *gin.Context) {
 
 	tasks := []models.TaskBody{}
 
-	from := time.Now()
-	to := from.AddDate(0, 0, 1)
+	// from := time.Now()
+	// to := from.AddDate(0, 0, 1)
 
 	for {
 		templates, err := h.templatesRepository.GetAllDaily(page, 256)
@@ -48,15 +46,11 @@ func (h *SchedulingHandler) DailyCronHook(c *gin.Context) {
 			break
 		}
 
-		for _, template := range templates {
-			_tasks, err := scheduling.ScheduleTemplate(template, from, to)
+		// for _, template := range templates {
+		// 	// _tasks := scheduling.ScheduleDailyTask(template, from, to)
 
-			if err != nil {
-				panic(err)
-			}
-
-			tasks = append(tasks, _tasks...)
-		}
+		// 	// tasks = append(tasks, _tasks...)
+		// }
 	}
 
 	ids, err := h.tasksRepository.CreateBulk(tasks)

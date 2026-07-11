@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"net/http"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/chop1k/medods-test/internal/database"
 	"github.com/chop1k/medods-test/internal/models"
-	"github.com/chop1k/medods-test/internal/responses"
 )
 
 type TemplateHandler struct {
@@ -24,17 +23,24 @@ func NewTemplateHandler(storage *database.TemplatesStorage) *TemplateHandler {
 func (h *TemplateHandler) GetTemplates(c *gin.Context) {
 	var query models.ListTemplatesQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
+	}
+
+	templates, err := h.repository.GetAll(query.Page, query.Limit)
+
+	if err != nil {
+		panic(err)
 	}
 
 	// TODO: fetch paginated templates from the database using query.Page,
 	// query.Limit, query.Sort and query.SortField.
 
 	c.JSON(http.StatusOK, models.TemplateListResponse{
-		Data: []models.Template{},
+		Data: templates,
 		Meta: models.PaginationMeta{
-			Total:      0,
+			Total:      len(templates),
 			Page:       query.Page,
 			Limit:      query.Limit,
 			TotalPages: 0,
@@ -45,7 +51,7 @@ func (h *TemplateHandler) GetTemplates(c *gin.Context) {
 func (h *TemplateHandler) CreateTemplate(c *gin.Context) {
 	var body models.TemplateBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
 		return
 	}
 
@@ -60,9 +66,6 @@ func (h *TemplateHandler) CreateTemplate(c *gin.Context) {
 		TemplateBody: body,
 	}
 
-	// TODO: set the Location header to the URL of the created resource,
-	// e.g. c.Header("Location", fmt.Sprintf("/tasks/templates/%d", created.ID))
-
 	c.Header("Location", "/v1/tasks/task"+strconv.Itoa(id))
 	c.JSON(http.StatusCreated, created)
 }
@@ -70,37 +73,44 @@ func (h *TemplateHandler) CreateTemplate(c *gin.Context) {
 func (h *TemplateHandler) GetTemplateByID(c *gin.Context) {
 	var param models.TemplateIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
-	// TODO: fetch the template by param.TemplateID from the database.
-	// If it does not exist, respond with httpresponse.NotFound(c, "...").
+	template, err := h.repository.GetById(param.TemplateID)
 
-	c.JSON(http.StatusOK, models.Template{ID: param.TemplateID})
+	if err != nil {
+		NotFound(c, err.Error())
+
+		return
+	}
+
+	c.JSON(http.StatusOK, template)
 }
 
 func (h *TemplateHandler) UpdateTemplate(c *gin.Context) {
 	var param models.TemplateIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
 	var body models.TemplateBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
-	// TODO: verify the template with param.TemplateID exists
-	// (httpresponse.NotFound(c, "...") if not), then persist the update.
-	updated := models.Template{
-		ID:           param.TemplateID,
-		TemplateBody: body,
+	template, err := h.repository.UpdateById(param.TemplateID, body)
+
+	if err != nil {
+		panic(err)
 	}
 
-	c.JSON(http.StatusOK, updated)
+	c.JSON(http.StatusOK, template)
 }
 
 // DeleteTemplate handles DELETE /tasks/templates/{template_id}
@@ -108,12 +118,16 @@ func (h *TemplateHandler) UpdateTemplate(c *gin.Context) {
 func (h *TemplateHandler) DeleteTemplate(c *gin.Context) {
 	var param models.TemplateIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
-	// TODO: verify the template with param.TemplateID exists
-	// (httpresponse.NotFound(c, "...") if not), then delete it.
+	err := h.repository.RemoveById(param.TemplateID)
+
+	if err != nil {
+		panic(err)
+	}
 
 	c.Status(http.StatusNoContent)
 }

@@ -1,21 +1,78 @@
-// Package migrate will run database schema migrations for the application.
-// It is intentionally left unimplemented - only the configuration surface
-// (see internal/config.DatabaseConfig and MigrationConfig) is wired up for
-// now.
-package migrations
+package app
 
 import (
+	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 
-	"github.com/chop1k/medods-test/internal/config"
-	"github.com/chop1k/medods-test/internal/database"
+	_ "github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/chop1k/medods-test/internal/app/config"
+	"github.com/chop1k/medods-test/internal/transport/http"
 )
+
+func Migrate(args []string) error {
+	fs := flag.NewFlagSet("migrate", flag.ExitOnError)
+
+	cfg := config.RegisterConfigFlags(fs)
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if err := migrate(cfg.DB, cfg.Migrations.Path); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Serve(args []string) {
+	fs := flag.NewFlagSet("serve", flag.ExitOnError)
+
+	cfg := config.RegisterConfigFlags(fs)
+
+	if err := fs.Parse(args); err != nil {
+		panic(err)
+	}
+
+	db, err := connectDB(cfg.DB)
+
+	if err != nil {
+		panic(err)
+	}
+
+	srv := http.NewServer(cfg.HTTP, db)
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		if err := srv.Listen(); err != nil {
+			panic(err)
+		}
+	}()
+
+	<-ctx.Done()
+
+	if err = srv.Shutdown(); err != nil {
+		panic(err)
+	}
+}
+
+func connectDB(cfg *config.DatabaseConfig) (*sql.DB, error) {
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name, cfg.SSLMode)
+
+	return sql.Open("pgx", dsn)
+}
 
 type FileInfo struct {
 	ID      int
@@ -24,13 +81,8 @@ type FileInfo struct {
 	Path    string
 }
 
-// Run is a placeholder for applying pending migrations found under
-// migrationsPath against the database described by dbCfg.
-//
-// TODO: wire in a migration tool (e.g. golang-migrate/migrate) and run all
-// pending migrations from migrationsPath against dbCfg.DSN().
-func Run(dbCfg config.DatabaseConfig, migrationsPath string) error {
-	db, err := database.Connect(dbCfg)
+func migrate(cfg *config.DatabaseConfig, migrationsPath string) error {
+	db, err := connectDB(cfg)
 
 	migrations, err := parseAndReadFiles(migrationsPath)
 
@@ -86,7 +138,6 @@ func runTransaction(tx *sql.Tx, migration FileInfo) error {
 }
 
 func parseAndReadFiles(folderPath string) ([]FileInfo, error) {
-	// Читаем все файлы в папке
 	entries, err := os.ReadDir(folderPath)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка чтения папки: %v", err)
@@ -94,49 +145,39 @@ func parseAndReadFiles(folderPath string) ([]FileInfo, error) {
 
 	var fileInfos []FileInfo
 
-	// Обрабатываем каждый файл
 	for _, entry := range entries {
-		// Пропускаем директории
 		if entry.IsDir() {
 			continue
 		}
 
 		fileName := entry.Name()
 
-		// Проверяем расширение .sql
 		if !strings.HasSuffix(fileName, ".sql") {
 			continue
 		}
 
-		// Убираем расширение .sql
 		nameWithoutExt := strings.TrimSuffix(fileName, ".sql")
 
-		// Разбиваем на ID и имя (ищем первый _)
 		underscoreIndex := strings.Index(nameWithoutExt, "_")
 		if underscoreIndex == -1 {
-			continue // Пропускаем файлы без _
+			continue
 		}
 
-		// Парсим ID
 		idStr := nameWithoutExt[:underscoreIndex]
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
-			continue // Пропускаем файлы с невалидным ID
+			continue
 		}
 
-		// Получаем имя (все что после первого _)
 		name := nameWithoutExt[underscoreIndex+1:]
 
-		// Полный путь к файлу
 		fullPath := filepath.Join(folderPath, fileName)
 
-		// Читаем содержимое файла
 		content, err := os.ReadFile(fullPath)
 		if err != nil {
 			return nil, fmt.Errorf("ошибка чтения файла %s: %v", fileName, err)
 		}
 
-		// Создаем структуру
 		fileInfo := FileInfo{
 			ID:      id,
 			Name:    name,
@@ -147,7 +188,6 @@ func parseAndReadFiles(folderPath string) ([]FileInfo, error) {
 		fileInfos = append(fileInfos, fileInfo)
 	}
 
-	// Сортируем по ID
 	sort.Slice(fileInfos, func(i, j int) bool {
 		return fileInfos[i].ID < fileInfos[j].ID
 	})

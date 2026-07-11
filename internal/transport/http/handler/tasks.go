@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"net/http"
@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/chop1k/medods-test/internal/models"
-	"github.com/chop1k/medods-test/internal/responses"
 )
 
 type TaskHandler struct {
@@ -19,7 +18,8 @@ func NewTaskHandler() *TaskHandler {
 func (h *TaskHandler) GetTasks(c *gin.Context) {
 	var query models.ListTasksQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
@@ -39,8 +39,10 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 
 func (h *TaskHandler) CreateTask(c *gin.Context) {
 	var body models.TaskBody
+
 	if err := c.ShouldBindJSON(&body); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
@@ -59,7 +61,8 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 	var param models.TaskIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
@@ -72,13 +75,15 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	var param models.TaskIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
 	var body models.TaskBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 
@@ -95,7 +100,8 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 func (h *TaskHandler) DeleteTask(c *gin.Context) {
 	var param models.TaskIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
-		responses.ValidationError(c, err)
+		ValidationError(c, err)
+
 		return
 	}
 

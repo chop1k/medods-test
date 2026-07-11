@@ -11,6 +11,12 @@ type TemplatesStorage struct {
 	db *sql.DB
 }
 
+func NewTemplateStorage(db *sql.DB) *TemplatesStorage {
+	return &TemplatesStorage{
+		db: db,
+	}
+}
+
 func (s *TemplatesStorage) GetAll(page int, limit int) ([]models.Template, error) {
 	results, err := s.db.Query("select * from \"app\".\"templates\" limit $1 offset $2", limit, (page-1)*limit)
 
@@ -25,7 +31,7 @@ func (s *TemplatesStorage) GetAll(page int, limit int) ([]models.Template, error
 		var template models.Template
 		var schedulingRaw []byte
 
-		err = results.Scan(&template.ID, &template.Name, &template.Description, &template.StartsAt, &template.EndsAt, &schedulingRaw)
+		err = results.Scan(&template.ID, &template.Name, &template.Description, &template.StartsAt, &template.EndsAt, &template.Enabled, &schedulingRaw)
 
 		if err != nil {
 			return nil, err
@@ -53,7 +59,7 @@ func (s *TemplatesStorage) GetById(id int) (*models.Template, error) {
 	var template models.Template
 	var schedulingRaw []byte
 
-	err := results.Scan(&template.ID, &template.Name, &template.Description, &template.StartsAt, &template.EndsAt, &schedulingRaw)
+	err := results.Scan(&template.ID, &template.Name, &template.Description, &template.StartsAt, &template.EndsAt, &template.Enabled, &schedulingRaw)
 
 	if err != nil {
 		return nil, err
@@ -80,11 +86,12 @@ func (s *TemplatesStorage) Create(template models.TemplateBody) (int, error) {
 	}
 
 	results := s.db.QueryRow(
-		"insert into \"app\".\"templates\" (\"name\", \"description\", \"starts_at\", \"ends_at\", \"scheduling\") values ($1, $2, $3, $4, $5) returning id",
+		"insert into \"app\".\"templates\" (\"name\", \"description\", \"starts_at\", \"ends_at\", \"enabled\", \"scheduling\") values ($1, $2, $3, $4, $5, $6) returning id",
 		template.Name,
 		template.Description,
 		template.StartsAt,
 		template.EndsAt,
+		template.Enabled,
 		scheduling,
 	)
 
@@ -99,28 +106,44 @@ func (s *TemplatesStorage) Create(template models.TemplateBody) (int, error) {
 	return id, nil
 }
 
-func (s *TemplatesStorage) UpdateById(id int, template models.TemplateBody) error {
-	scheduling, err := json.Marshal(template.Scheduling)
+func (s *TemplatesStorage) UpdateById(id int, newTemplate models.TemplateBody) (*models.Template, error) {
+	newScheduling, err := json.Marshal(newTemplate.Scheduling)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = s.db.Exec(
-		"update \"app\".\"templates\" set \"name\" = $1, \"description\" = $2, \"starts_at\" = $3, \"ends_at\" = $4, \"scheduling\" = $5 where id = $6",
-		template.Name,
-		template.Description,
-		template.StartsAt,
-		template.EndsAt,
-		scheduling,
+	result := s.db.QueryRow(
+		"update \"app\".\"templates\" set \"name\" = $1, \"description\" = $2, \"starts_at\" = $3, \"ends_at\" = $4, \"enabled\" = $5, \"scheduling\" = $6 where id = $7 returning *",
+		newTemplate.Name,
+		newTemplate.Description,
+		newTemplate.StartsAt,
+		newTemplate.EndsAt,
+		newTemplate.Enabled,
+		newScheduling,
 		id,
 	)
 
+	var template models.Template
+	var schedulingRaw []byte
+
+	err = result.Scan(&template.ID, &template.Name, &template.Description, &template.StartsAt, &template.EndsAt, &schedulingRaw)
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	var scheduling models.Scheduling
+
+	err = json.Unmarshal(schedulingRaw, &scheduling)
+
+	if err != nil {
+		return nil, err
+	}
+
+	template.Scheduling = &scheduling
+
+	return &template, nil
 }
 
 func (s *TemplatesStorage) RemoveById(id int) error {
@@ -130,4 +153,40 @@ func (s *TemplatesStorage) RemoveById(id int) error {
 	)
 
 	return err
+}
+
+func (s *TemplatesStorage) GetAllDaily(page int, limit int) ([]models.Template, error) {
+	results, err := s.db.Query("select * from \"app\".\"templates\" where scheduling ->> 'type' = 'daily' limit $1 offset $2", limit, (page-1)*limit)
+
+	if err != nil {
+		return nil, err
+	}
+	defer results.Close()
+
+	templates := []models.Template{}
+
+	for results.Next() {
+		var template models.Template
+		var schedulingRaw []byte
+
+		err = results.Scan(&template.ID, &template.Name, &template.Description, &template.StartsAt, &template.EndsAt, &template.Enabled, &schedulingRaw)
+
+		if err != nil {
+			return nil, err
+		}
+
+		var scheduling models.Scheduling
+
+		err = json.Unmarshal(schedulingRaw, &scheduling)
+
+		if err != nil {
+			return nil, err
+		}
+
+		template.Scheduling = &scheduling
+
+		templates = append(templates, template)
+	}
+
+	return templates, nil
 }

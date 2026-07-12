@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -19,20 +20,18 @@ import (
 	"github.com/chop1k/medods-test/internal/transport/http"
 )
 
-func Migrate(args []string) error {
+func Migrate(args []string) {
 	fs := flag.NewFlagSet("migrate", flag.ExitOnError)
 
 	cfg := config.RegisterConfigFlags(fs)
 
 	if err := fs.Parse(args); err != nil {
-		return err
+		panic(err)
 	}
 
 	if err := migrate(cfg.DB, cfg.Migrations.Path); err != nil {
-		return err
+		panic(err)
 	}
-
-	return nil
 }
 
 func Serve(args []string) {
@@ -71,7 +70,19 @@ func Serve(args []string) {
 func OpenDatabase(cfg *config.DatabaseConfig) (*sql.DB, error) {
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name, cfg.SSLMode)
 
-	return sql.Open("pgx", dsn)
+	conn, err := sql.Open("pgx", dsn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = conn.Ping()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 type FileInfo struct {
@@ -108,7 +119,7 @@ func migrate(cfg *config.DatabaseConfig, migrationsPath string) error {
 		err = runTransaction(tx, migration)
 
 		if err != nil {
-			return err
+			return errors.Join(fmt.Errorf("got error at migration %d", migration.ID), err)
 		}
 	}
 

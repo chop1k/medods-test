@@ -26,7 +26,7 @@ create table "app"."tasks" (
             references "app"."templates" (id)
                 on delete cascade,
     constraint "app_tasks_moved_to_task_id_fkey"
-        foreign key (moved_to)
+        foreign key (moved_task_id)
             references "app"."tasks" (id)
                 on delete cascade,
 
@@ -37,27 +37,27 @@ create table "app"."tasks" (
         "notes" is null or "notes" != ''
     ),
     constraint "app_tasks_one_of_fkeys_chck" check (
-        "status" is not 'moved' and "template_id" is not null
+        "status" != 'moved' and "template_id" is not null
     ),
 
     constraint "app_tasks_pending_chck" check (
-        "status" is 'pending' and "started_at" is null and "ended_at" is null
+        "status" = 'pending' and "started_at" is null and "ended_at" is null
     ),
     constraint "app_tasks_running_chck" check (
-        "status" is 'running' and "started_at" is not null
+        "status" = 'running' and "started_at" is not null
     ),
     constraint "app_tasks_finished_chck" check (
-        "status" is 'finished' and "started_at" is not null and "ended_at" is not null
+        "status" = 'finished' and "started_at" is not null and "ended_at" is not null
     ),
     constraint "app_tasks_cancelled_chck" check (
-        "status" is 'cancelled' and (
-            ("started_at" is not null and "ended_at" is not null) or ("started_at" is null and "ended_at" is null)
+        "status" = 'cancelled' and (
+            ("started_at" is not null and "ended_at" is not null) or ("started_at" != null and "ended_at" is null)
         )
     ),
     constraint "app_tasks_moved_chck" check (
-        "status" is 'moved' and "moved_task_id" is not null and "template_id" is null
-    )
+        "status" = 'moved' and "moved_task_id" is not null and "template_id" is null
+    ),
     constraint "app_tasks_overdue_chck" check (
-        "status" is 'overdue' and "started_at" is not null and "ended_at" is null
+        "status" = 'overdue' and "started_at" is not null and "ended_at" is null
     )
 );

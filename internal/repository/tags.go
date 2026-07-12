@@ -11,7 +11,7 @@ import (
 // represented on the model yet, so it's intentionally left out here rather
 // than guessed at - add it (and the matching model field) once that
 // mapping is decided.
-const tagColumns = `"id", "name", "type", "deleted_at"`
+const tagColumns = `"id", "name", "description"`
 
 type TagsStorage struct {
 	db *sql.DB
@@ -39,7 +39,7 @@ func (s *TagsStorage) GetAll(page int, limit int) ([]models.Tag, error) {
 	for results.Next() {
 		var tag models.Tag
 
-		err = results.Scan(&tag.ID, &tag.Name, &tag.Type, &tag.DeletedAt)
+		err = results.Scan(&tag.ID, &tag.Name, &tag.Description)
 
 		if err != nil {
 			return nil, err
@@ -59,7 +59,7 @@ func (s *TagsStorage) GetById(id int) (*models.Tag, error) {
 
 	var tag models.Tag
 
-	err := result.Scan(&tag.ID, &tag.Name, &tag.Type, &tag.DeletedAt)
+	err := result.Scan(&tag.ID, &tag.Name, &tag.Description)
 
 	if err != nil {
 		return nil, err
@@ -70,10 +70,9 @@ func (s *TagsStorage) GetById(id int) (*models.Tag, error) {
 
 func (s *TagsStorage) Create(tag models.TagBody) (int, error) {
 	result := s.db.QueryRow(
-		"insert into \"app\".\"tags\" (\"name\", \"type\", \"deleted_at\") values ($1, $2, $3) returning id",
+		"insert into \"app\".\"tags\" (\"name\", \"description\", \"type\") values ($1, $2, 'user-defined') returning id",
 		tag.Name,
-		tag.Type,
-		tag.DeletedAt,
+		tag.Description,
 	)
 
 	var id int
@@ -85,26 +84,6 @@ func (s *TagsStorage) Create(tag models.TagBody) (int, error) {
 	}
 
 	return id, nil
-}
-
-func (s *TagsStorage) UpdateById(id int, newTag models.TagBody) (*models.Tag, error) {
-	result := s.db.QueryRow(
-		"update \"app\".\"tags\" set \"name\" = $1, \"type\" = $2, \"deleted_at\" = $3 where id = $4 returning "+tagColumns,
-		newTag.Name,
-		newTag.Type,
-		newTag.DeletedAt,
-		id,
-	)
-
-	var tag models.Tag
-
-	err := result.Scan(&tag.ID, &tag.Name, &tag.Type, &tag.DeletedAt)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &tag, nil
 }
 
 func (s *TagsStorage) RemoveById(id int) error {

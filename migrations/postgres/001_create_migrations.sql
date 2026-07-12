@@ -10,3 +10,14 @@ create table "app"."migrations" (
     constraint "app_migrations_id_pkey"
         primary key (id)
 );
+
+create table "app"."seeds" (
+    "id" integer not null,
+
+    "name" varchar(128) not null,
+
+    "created_at" timestamp not null,
+
+    constraint "app_seeds_id_pkey"
+        primary key (id)
+);

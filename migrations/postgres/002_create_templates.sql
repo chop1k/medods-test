@@ -3,8 +3,8 @@ create table "app"."templates" (
 
     "name" varchar(64) not null,
     "description" text,
-    "starts_at" timestamp not null,
-    "ends_at" timestamp not null,
+    "starts_at" time not null,
+    "ends_at" time not null,
 
     "enabled" boolean not null,
 

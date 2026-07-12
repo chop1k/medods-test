@@ -106,28 +106,17 @@ func (s *TemplatesStorage) Create(template models.TemplateBody) (int, error) {
 	return id, nil
 }
 
-func (s *TemplatesStorage) UpdateById(id int, newTemplate models.TemplateBody) (*models.Template, error) {
-	newScheduling, err := json.Marshal(newTemplate.Scheduling)
-
-	if err != nil {
-		return nil, err
-	}
-
+func (s *TemplatesStorage) UpdateById(id int, newTemplate models.TemplateUpdateBody) (*models.Template, error) {
 	result := s.db.QueryRow(
-		"update \"app\".\"templates\" set \"name\" = $1, \"description\" = $2, \"starts_at\" = $3, \"ends_at\" = $4, \"enabled\" = $5, \"scheduling\" = $6 where id = $7 returning *",
-		newTemplate.Name,
-		newTemplate.Description,
-		newTemplate.StartsAt,
-		newTemplate.EndsAt,
+		"update \"app\".\"templates\" set \"enabled\" = $1 where id = $2 returning *",
 		newTemplate.Enabled,
-		newScheduling,
 		id,
 	)
 
 	var template models.Template
 	var schedulingRaw []byte
 
-	err = result.Scan(&template.ID, &template.Name, &template.Description, &template.StartsAt, &template.EndsAt, &schedulingRaw)
+	err := result.Scan(&template.ID, &template.Name, &template.Description, &template.StartsAt, &template.EndsAt, &template.Enabled, &schedulingRaw)
 
 	if err != nil {
 		return nil, err

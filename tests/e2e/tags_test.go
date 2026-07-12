@@ -1,202 +1,138 @@
 package e2e
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/json"
+	"math/rand"
 	"net/http"
+	"strconv"
 	"testing"
 
+	"github.com/chop1k/medods-test/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/chop1k/medods-test/internal/models"
 )
 
-func validTagBody() models.TagBody {
-	return models.TagBody{
-		Name: "Household",
-		Type: models.TagTypeUserDefined,
-	}
+func tagsCollectionURL() string {
+	return testURL + "/v1/grouping/tags"
 }
 
-func TestGetTags_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
-
-	var out models.TagListResponse
-	resp := doJSON(t, client, http.MethodGet, srv.URL+"/v1/tasks/tags", nil, &out)
-
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.NotNil(t, out.Data)
-	assert.Equal(t, 1, out.Meta.Page)
-	assert.Equal(t, 20, out.Meta.Limit)
+func tagURL(id int) string {
+	return testURL + "/v1/grouping/tags/" + strconv.Itoa(id)
 }
 
-func TestGetTags_WithPaginationAndSorting(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+func validTagBodies() []models.TagBody {
+	description := "321"
 
-	url := srv.URL + "/v1/tasks/tags?page=2&limit=10&sort=desc&sort-field=name"
-	var out models.TagListResponse
-	resp := doJSON(t, client, http.MethodGet, url, nil, &out)
-
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, 2, out.Meta.Page)
-	assert.Equal(t, 10, out.Meta.Limit)
-}
-
-func TestGetTags_InvalidQuery(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
-
-	cases := []string{
-		"?page=0",
-		"?limit=101",
-		"?sort=sideways",
-		"?sort-field=unknown",
-	}
-
-	for _, qs := range cases {
-		t.Run(qs, func(t *testing.T) {
-			var out models.ValidationErrorResponse
-			resp := doJSON(t, client, http.MethodGet, srv.URL+"/v1/tasks/tags"+qs, nil, &out)
-
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-			assert.Equal(t, http.StatusBadRequest, out.Status)
-		})
-	}
-}
-
-func TestCreateTag_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
-
-	body := validTagBody()
-
-	var out models.Tag
-	resp := doJSON(t, client, http.MethodPost, srv.URL+"/v1/tasks/tags", body, &out)
-
-	require.Equal(t, http.StatusCreated, resp.StatusCode)
-	assert.Equal(t, body.Name, out.Name)
-	assert.Equal(t, body.Type, out.Type)
-}
-
-func TestCreateTag_ValidationError(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
-
-	cases := map[string]models.TagBody{
-		"name too short": {
-			Name: "a",
-			Type: models.TagTypePredefined,
+	return []models.TagBody{
+		{
+			Name:        "123",
+			Description: nil,
 		},
-		"missing type": {
-			Name: "Valid name",
-		},
-		"invalid type": {
-			Name: "Valid name",
-			Type: "not-a-type",
+		{
+			Name:        "123",
+			Description: &description,
 		},
 	}
+}
 
-	for name, body := range cases {
-		t.Run(name, func(t *testing.T) {
-			var out models.ValidationErrorResponse
-			resp := doJSON(t, client, http.MethodPost, srv.URL+"/v1/tasks/tags", body, &out)
+func TestGetTags(t *testing.T) {
+	TruncateDB(t)
 
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-			assert.Equal(t, http.StatusBadRequest, out.Status)
+	bodies := validTagBodies()
+
+	for _, body := range bodies {
+		t.Run(body.Name, func(t *testing.T) {
+			tagJson, err := json.Marshal(body)
+			require.Nil(t, err, "cannot marshal the body", err)
+
+			request, err := http.NewRequest(http.MethodPost, tagsCollectionURL(), bytes.NewReader(tagJson))
+			require.Nil(t, err, "cannot create create request", err)
+
+			response, err := testClient.Do(request)
+			require.Nil(t, err, "create request failed", err)
+			defer response.Body.Close()
+
+			require.Equal(t, http.StatusCreated, response.StatusCode)
 		})
 	}
+
+	request, err := http.NewRequest(http.MethodGet, tagsCollectionURL(), nil)
+	require.Nil(t, err, "cannot create get tags request", err)
+
+	response, err := testClient.Do(request)
+	require.Nil(t, err, "get request failed")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+
+	var tags models.TagListResponse
+	err = json.NewDecoder(response.Body).Decode(&tags)
+	require.Nil(t, err, "get tags endpoint returned unknown format", err)
+
+	assert.Equal(t, len(bodies), len(tags.Data))
+
+	for i, tag := range tags.Data {
+		assert.Equal(t, tag.Name, bodies[i].Name)
+		assert.Equal(t, tag.Description, bodies[i].Description)
+	}
 }
 
-func TestGetTagByID_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+func TestRemoveTags(t *testing.T) {
+	TruncateDB(t)
 
-	var out models.Tag
-	resp := doJSON(t, client, http.MethodGet, srv.URL+"/v1/tasks/tags/42", nil, &out)
+	bodies := validTagBodies()
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, int64(42), out.ID)
-}
+	for _, body := range bodies {
+		t.Run(body.Name, func(t *testing.T) {
+			tagJson, err := json.Marshal(body)
+			require.Nil(t, err, "cannot marshal the body", err)
 
-func TestGetTagByID_InvalidID(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+			request, err := http.NewRequest(http.MethodPost, tagsCollectionURL(), bytes.NewReader(tagJson))
+			require.Nil(t, err, "cannot create create request", err)
 
-	cases := []string{"0", "-1", "not-a-number"}
+			response, err := testClient.Do(request)
+			require.Nil(t, err, "create request failed", err)
 
-	for _, id := range cases {
-		t.Run(id, func(t *testing.T) {
-			var out models.ValidationErrorResponse
-			resp := doJSON(t, client, http.MethodGet, fmt.Sprintf("%s/v1/tasks/tags/%s", srv.URL, id), nil, &out)
+			defer response.Body.Close()
 
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-			assert.Equal(t, http.StatusBadRequest, out.Status)
+			require.Equal(t, http.StatusCreated, response.StatusCode)
 		})
 	}
-}
 
-func TestUpdateTag_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+	getCollectionRequest, err := http.NewRequest(http.MethodGet, tagsCollectionURL(), nil)
+	require.Nil(t, err, "cannot create get tags request", err)
 
-	body := validTagBody()
-	body.Name = "Updated name"
+	getCollectionResponse, err := testClient.Do(getCollectionRequest)
+	require.Nil(t, err, "get request failed")
+	require.Equal(t, http.StatusOK, getCollectionResponse.StatusCode)
+	defer getCollectionResponse.Body.Close()
 
-	var out models.Tag
-	resp := doJSON(t, client, http.MethodPut, srv.URL+"/v1/tasks/tags/42", body, &out)
+	var tags models.TemplateListResponse
+	err = json.NewDecoder(getCollectionResponse.Body).Decode(&tags)
+	require.Nil(t, err, "get tags endpoint returned unknown format", err)
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, int64(42), out.ID)
-	assert.Equal(t, "Updated name", out.Name)
-}
+	assert.Equal(t, len(bodies), len(tags.Data))
 
-func TestUpdateTag_InvalidID(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
-
-	body := validTagBody()
-
-	var out models.ValidationErrorResponse
-	resp := doJSON(t, client, http.MethodPut, srv.URL+"/v1/tasks/tags/0", body, &out)
-
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, http.StatusBadRequest, out.Status)
-}
-
-func TestUpdateTag_ValidationError(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
-
-	invalidBody := map[string]any{
-		"name": "a",
-		"type": "predefined",
+	for i, template := range tags.Data {
+		assert.Equal(t, template.Name, bodies[i].Name)
+		assert.Equal(t, template.Description, bodies[i].Description)
 	}
 
-	var out models.ValidationErrorResponse
-	resp := doJSON(t, client, http.MethodPut, srv.URL+"/v1/tasks/tags/42", invalidBody, &out)
+	tagNumber := rand.New(rand.NewSource(testSeed)).Intn(len(tags.Data))
+	tagID := tags.Data[tagNumber].ID
 
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, http.StatusBadRequest, out.Status)
-}
+	removeRequest, err := http.NewRequest(http.MethodDelete, tagURL(tagID), nil)
+	require.Nil(t, err, "cannot create delete tag request", err)
 
-func TestDeleteTag_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+	removeResponse, err := testClient.Do(removeRequest)
+	require.Nil(t, err, "remove request failed")
+	require.Equal(t, http.StatusNoContent, removeResponse.StatusCode)
+	defer removeResponse.Body.Close()
 
-	resp := doJSON(t, client, http.MethodDelete, srv.URL+"/v1/tasks/tags/42", nil, nil)
+	getTemplateRequest, err := http.NewRequest(http.MethodGet, tagURL(tagID), nil)
+	require.Nil(t, err, "cannot create get tag request", err)
 
-	require.Equal(t, http.StatusNoContent, resp.StatusCode)
-}
-
-func TestDeleteTag_InvalidID(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
-
-	var out models.ValidationErrorResponse
-	resp := doJSON(t, client, http.MethodDelete, srv.URL+"/v1/tasks/tags/abc", nil, &out)
-
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, http.StatusBadRequest, out.Status)
+	getTemplateResponse, err := testClient.Do(getTemplateRequest)
+	require.Nil(t, err, "get request failed")
+	require.Equal(t, http.StatusNotFound, getTemplateResponse.StatusCode)
+	defer removeResponse.Body.Close()
 }

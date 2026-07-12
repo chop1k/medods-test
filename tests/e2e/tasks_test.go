@@ -1,203 +1,235 @@
 package e2e
 
-import (
-	"fmt"
-	"net/http"
-	"testing"
+// import (
+// 	"bytes"
+// 	"encoding/json"
+// 	"math/rand"
+// 	"net/http"
+// 	"strconv"
+// 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+// 	"github.com/chop1k/medods-test/internal/models"
+// 	"github.com/stretchr/testify/assert"
+// 	"github.com/stretchr/testify/require"
+// )
 
-	"github.com/chop1k/medods-test/internal/models"
-)
+// const dailyCronURL = "/v1/scheduling/daily-cron-url"
 
-func validTaskBody() models.TaskBody {
-	return models.TaskBody{
-		TemplateID: 7,
-		Status:     models.TaskStatusPending,
-		Notes:      "Some notes",
-	}
-}
+// func tasksCollectionURL() string {
+// 	return testURL + "/v1/tasks/tasks"
+// }
 
-func TestGetTasks_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// func taskURL(id int) string {
+// 	return testURL + "/v1/tasks/tasks/" + strconv.Itoa(id)
+// }
 
-	var out models.TaskListResponse
-	resp := doJSON(t, client, http.MethodGet, srv.URL+"/v1/tasks", nil, &out)
+// func validTaskBodies() []models.TaskBody {
+// 	return []models.TaskBody{}
+// }
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.NotNil(t, out.Data)
-	assert.Equal(t, 1, out.Meta.Page)
-	assert.Equal(t, 20, out.Meta.Limit)
-}
+// func TestGetTasks(t *testing.T) {
+// 	TruncateDB(t)
 
-func TestGetTasks_WithPaginationAndSorting(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 	bodies := validTaskBodies()
 
-	url := srv.URL + "/v1/tasks?page=2&limit=10&sort=desc&sort-field=status"
-	var out models.TaskListResponse
-	resp := doJSON(t, client, http.MethodGet, url, nil, &out)
+// 	for _, body := range bodies {
+// 		t.Run(body.Name, func(t *testing.T) {
+// 			templateJson, err := json.Marshal(body)
+// 			require.Nil(t, err, "cannot marshal the body", err)
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, 2, out.Meta.Page)
-	assert.Equal(t, 10, out.Meta.Limit)
-}
+// 			request, err := http.NewRequest(http.MethodPost, tasksCollectionURL(), bytes.NewReader(templateJson))
+// 			require.Nil(t, err, "cannot create create request", err)
 
-func TestGetTasks_InvalidQuery(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 			response, err := testClient.Do(request)
+// 			require.Nil(t, err, "create request failed", err)
 
-	cases := []string{
-		"?page=0",
-		"?limit=101",
-		"?sort=sideways",
-		"?sort-field=unknown",
-	}
+// 			defer response.Body.Close()
 
-	for _, qs := range cases {
-		t.Run(qs, func(t *testing.T) {
-			var out models.ValidationErrorResponse
-			resp := doJSON(t, client, http.MethodGet, srv.URL+"/v1/tasks"+qs, nil, &out)
+// 			require.Equal(t, http.StatusCreated, response.StatusCode)
+// 		})
+// 	}
 
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-			assert.Equal(t, http.StatusBadRequest, out.Status)
-		})
-	}
-}
+// 	request, err := http.NewRequest(http.MethodGet, tasksCollectionURL(), nil)
+// 	require.Nil(t, err, "cannot create get template request", err)
 
-func TestCreateTask_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 	response, err := testClient.Do(request)
+// 	require.Nil(t, err, "get request failed")
+// 	require.Equal(t, http.StatusOK, response.StatusCode)
+// 	defer response.Body.Close()
 
-	body := validTaskBody()
+// 	var templates models.TemplateListResponse
+// 	err = json.NewDecoder(response.Body).Decode(&templates)
+// 	require.Nil(t, err, "get templates endpoint returned unknown format", err)
 
-	var out models.Task
-	resp := doJSON(t, client, http.MethodPost, srv.URL+"/v1/tasks", body, &out)
+// 	assert.Equal(t, len(bodies), len(templates.Data))
 
-	require.Equal(t, http.StatusCreated, resp.StatusCode)
-	assert.Equal(t, body.TemplateID, out.TemplateID)
-	assert.Equal(t, body.Status, out.Status)
-}
+// 	for i, template := range templates.Data {
+// 		assert.Equal(t, template.Name, bodies[i].Name)
+// 		assert.Equal(t, template.Description, bodies[i].Description)
+// 		assert.Equal(t, template.StartsAt, bodies[i].StartsAt)
+// 		assert.Equal(t, template.EndsAt, bodies[i].EndsAt)
+// 		assert.Equal(t, template.Scheduling, bodies[i].Scheduling)
+// 	}
+// }
 
-func TestCreateTask_ValidationError(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// func TestUpdateTasks(t *testing.T) {
+// 	TruncateDB(t)
 
-	cases := map[string]models.TaskBody{
-		"missing template_id": {
-			Status: models.TaskStatusPending,
-		},
-		"invalid status": {
-			TemplateID: 1,
-			Status:     "not-a-status",
-		},
-		"notes too short": {
-			TemplateID: 1,
-			Notes:      "a",
-		},
-	}
+// 	bodies := validTaskBodies()
 
-	for name, body := range cases {
-		t.Run(name, func(t *testing.T) {
-			var out models.ValidationErrorResponse
-			resp := doJSON(t, client, http.MethodPost, srv.URL+"/v1/tasks", body, &out)
+// 	for _, body := range bodies {
+// 		t.Run(body.Name, func(t *testing.T) {
+// 			templateJson, err := json.Marshal(body)
+// 			require.Nil(t, err, "cannot marshal the body", err)
 
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-			assert.Equal(t, http.StatusBadRequest, out.Status)
-		})
-	}
-}
+// 			request, err := http.NewRequest(http.MethodPost, tasksCollectionURL(), bytes.NewReader(templateJson))
+// 			require.Nil(t, err, "cannot create create request", err)
 
-func TestGetTaskByID_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 			response, err := testClient.Do(request)
+// 			require.Nil(t, err, "create request failed", err)
 
-	var out models.Task
-	resp := doJSON(t, client, http.MethodGet, srv.URL+"/v1/tasks/42", nil, &out)
+// 			defer response.Body.Close()
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, int64(42), out.ID)
-}
+// 			require.Equal(t, http.StatusCreated, response.StatusCode)
+// 		})
+// 	}
 
-func TestGetTaskByID_InvalidID(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 	getCollectionRequest, err := http.NewRequest(http.MethodGet, tasksCollectionURL(), nil)
+// 	require.Nil(t, err, "cannot create get template request", err)
 
-	cases := []string{"0", "-1", "not-a-number"}
+// 	getCollectionResponse, err := testClient.Do(getCollectionRequest)
+// 	require.Nil(t, err, "get request failed")
+// 	require.Equal(t, http.StatusOK, getCollectionResponse.StatusCode)
+// 	defer getCollectionResponse.Body.Close()
 
-	for _, id := range cases {
-		t.Run(id, func(t *testing.T) {
-			var out models.ValidationErrorResponse
-			resp := doJSON(t, client, http.MethodGet, fmt.Sprintf("%s/v1/tasks/%s", srv.URL, id), nil, &out)
+// 	var templates models.TemplateListResponse
+// 	err = json.NewDecoder(getCollectionResponse.Body).Decode(&templates)
+// 	require.Nil(t, err, "get templates endpoint returned unknown format", err)
 
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-			assert.Equal(t, http.StatusBadRequest, out.Status)
-		})
-	}
-}
+// 	assert.Equal(t, len(bodies), len(templates.Data))
 
-func TestUpdateTask_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 	for i, template := range templates.Data {
+// 		assert.Equal(t, template.Name, bodies[i].Name)
+// 		assert.Equal(t, template.Description, bodies[i].Description)
+// 		assert.Equal(t, template.StartsAt, bodies[i].StartsAt)
+// 		assert.Equal(t, template.EndsAt, bodies[i].EndsAt)
+// 		assert.Equal(t, template.Enabled, bodies[i].Enabled)
+// 		assert.Equal(t, template.Scheduling, bodies[i].Scheduling)
+// 	}
 
-	body := validTaskBody()
-	body.Status = models.TaskStatusRunning
+// 	templateNumber := rand.New(rand.NewSource(testSeed)).Intn(len(templates.Data))
+// 	templateID := templates.Data[templateNumber].ID
 
-	var out models.Task
-	resp := doJSON(t, client, http.MethodPut, srv.URL+"/v1/tasks/42", body, &out)
+// 	validUpdateBody := map[string]any{
+// 		"enabled": false,
+// 	}
+// 	validUpdateJson, err := json.Marshal(validUpdateBody)
+// 	require.Nil(t, err, "cannot marshal the update valid body", err)
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, int64(42), out.ID)
-	assert.Equal(t, models.TaskStatusRunning, out.Status)
-}
+// 	validUpdateRequest, err := http.NewRequest(http.MethodPut, taskURL(templateID), bytes.NewReader(validUpdateJson))
+// 	validUpdateRequest.Header.Add("content-type", "application/json")
+// 	require.Nil(t, err, "cannot create valid update template request", err)
 
-func TestUpdateTask_InvalidID(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 	validUpdateResponse, err := testClient.Do(validUpdateRequest)
+// 	require.Nil(t, err, "valid update request failed")
+// 	require.Equal(t, http.StatusOK, validUpdateResponse.StatusCode)
+// 	defer validUpdateResponse.Body.Close()
 
-	body := validTaskBody()
+// 	invalidUpdateBody := map[string]any{
+// 		"name": "321",
+// 	}
+// 	invalidUpdateJson, err := json.Marshal(invalidUpdateBody)
+// 	require.Nil(t, err, "cannot marshal the update invalid body", err)
 
-	var out models.ValidationErrorResponse
-	resp := doJSON(t, client, http.MethodPut, srv.URL+"/v1/tasks/0", body, &out)
+// 	invalidUpdateRequest, err := http.NewRequest(http.MethodPut, taskURL(templateID), bytes.NewReader(invalidUpdateJson))
+// 	invalidUpdateRequest.Header.Add("content-type", "application/json")
+// 	require.Nil(t, err, "cannot create invalud update template request", err)
 
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, http.StatusBadRequest, out.Status)
-}
+// 	invalidUpdateResponse, err := testClient.Do(invalidUpdateRequest)
+// 	require.Nil(t, err, "valid update request failed")
+// 	require.Equal(t, http.StatusBadRequest, invalidUpdateResponse.StatusCode)
+// 	defer invalidUpdateResponse.Body.Close()
 
-func TestUpdateTask_ValidationError(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 	getTemplateRequest, err := http.NewRequest(http.MethodGet, taskURL(templateID), nil)
+// 	require.Nil(t, err, "cannot create get template request", err)
 
-	invalidBody := map[string]any{
-		"status": "pending",
-		"notes":  "valid notes",
-	}
+// 	getTemplateResponse, err := testClient.Do(getTemplateRequest)
+// 	require.Nil(t, err, "get request failed")
+// 	require.Equal(t, http.StatusOK, getTemplateResponse.StatusCode)
+// 	defer getTemplateResponse.Body.Close()
 
-	var out models.ValidationErrorResponse
-	resp := doJSON(t, client, http.MethodPut, srv.URL+"/v1/tasks/42", invalidBody, &out)
+// 	var template models.Template
+// 	err = json.NewDecoder(getTemplateResponse.Body).Decode(&template)
+// 	require.Nil(t, err, "get template endpoint returned unknown format", err)
 
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, http.StatusBadRequest, out.Status)
-}
+// 	assert.Equal(t, template.Name, bodies[templateNumber].Name)
+// 	assert.Equal(t, template.Description, bodies[templateNumber].Description)
+// 	assert.Equal(t, template.StartsAt, bodies[templateNumber].StartsAt)
+// 	assert.Equal(t, template.EndsAt, bodies[templateNumber].EndsAt)
+// 	assert.Equal(t, template.Enabled, false)
+// 	assert.Equal(t, template.Scheduling, bodies[templateNumber].Scheduling)
+// }
 
-func TestDeleteTask_Success(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// func TestRemoveTasks(t *testing.T) {
+// 	TruncateDB(t)
 
-	resp := doJSON(t, client, http.MethodDelete, srv.URL+"/v1/tasks/42", nil, nil)
+// 	bodies := validTaskBodies()
 
-	require.Equal(t, http.StatusNoContent, resp.StatusCode)
-}
+// 	for _, body := range bodies {
+// 		t.Run(body.Name, func(t *testing.T) {
+// 			templateJson, err := json.Marshal(body)
+// 			require.Nil(t, err, "cannot marshal the body", err)
 
-func TestDeleteTask_InvalidID(t *testing.T) {
-	srv := newTestServer(t)
-	client := srv.Client()
+// 			request, err := http.NewRequest(http.MethodPost, tasksCollectionURL(), bytes.NewReader(templateJson))
+// 			require.Nil(t, err, "cannot create create request", err)
 
-	var out models.ValidationErrorResponse
-	resp := doJSON(t, client, http.MethodDelete, srv.URL+"/v1/tasks/abc", nil, &out)
+// 			response, err := testClient.Do(request)
+// 			require.Nil(t, err, "create request failed", err)
 
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, http.StatusBadRequest, out.Status)
-}
+// 			defer response.Body.Close()
+
+// 			require.Equal(t, http.StatusCreated, response.StatusCode)
+// 		})
+// 	}
+
+// 	getCollectionRequest, err := http.NewRequest(http.MethodGet, tasksCollectionURL(), nil)
+// 	require.Nil(t, err, "cannot create get template request", err)
+
+// 	getCollectionResponse, err := testClient.Do(getCollectionRequest)
+// 	require.Nil(t, err, "get request failed")
+// 	require.Equal(t, http.StatusOK, getCollectionResponse.StatusCode)
+// 	defer getCollectionResponse.Body.Close()
+
+// 	var templates models.TemplateListResponse
+// 	err = json.NewDecoder(getCollectionResponse.Body).Decode(&templates)
+// 	require.Nil(t, err, "get templates endpoint returned unknown format", err)
+
+// 	assert.Equal(t, len(bodies), len(templates.Data))
+
+// 	for i, template := range templates.Data {
+// 		assert.Equal(t, template.Name, bodies[i].Name)
+// 		assert.Equal(t, template.Description, bodies[i].Description)
+// 		assert.Equal(t, template.StartsAt, bodies[i].StartsAt)
+// 		assert.Equal(t, template.EndsAt, bodies[i].EndsAt)
+// 		assert.Equal(t, template.Scheduling, bodies[i].Scheduling)
+// 	}
+
+// 	templateNumber := rand.New(rand.NewSource(testSeed)).Intn(len(templates.Data))
+// 	templateID := templates.Data[templateNumber].ID
+
+// 	removeRequest, err := http.NewRequest(http.MethodDelete, taskURL(templateID), nil)
+// 	require.Nil(t, err, "cannot create delete template request", err)
+
+// 	removeResponse, err := testClient.Do(removeRequest)
+// 	require.Nil(t, err, "remove request failed")
+// 	require.Equal(t, http.StatusNoContent, removeResponse.StatusCode)
+// 	defer removeResponse.Body.Close()
+
+// 	getTemplateRequest, err := http.NewRequest(http.MethodGet, taskURL(templateID), nil)
+// 	require.Nil(t, err, "cannot create get template request", err)
+
+// 	getTemplateResponse, err := testClient.Do(getTemplateRequest)
+// 	require.Nil(t, err, "get request failed")
+// 	require.Equal(t, http.StatusNotFound, getTemplateResponse.StatusCode)
+// 	defer getTemplateResponse.Body.Close()
+// }

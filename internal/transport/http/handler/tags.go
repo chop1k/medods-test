@@ -90,28 +90,6 @@ func (h *TagHandler) GetTagByID(c *gin.Context) {
 	c.JSON(http.StatusOK, tag)
 }
 
-func (h *TagHandler) UpdateTag(c *gin.Context) {
-	var param models.TagIDParam
-	if err := c.ShouldBindUri(&param); err != nil {
-		ValidationError(c, err)
-		return
-	}
-
-	var body models.TagBody
-	if err := c.ShouldBindJSON(&body); err != nil {
-		ValidationError(c, err)
-		return
-	}
-
-	updated, err := h.repository.UpdateById(param.TagID, body)
-
-	if err != nil {
-		panic(err)
-	}
-
-	c.JSON(http.StatusOK, updated)
-}
-
 func (h *TagHandler) DeleteTag(c *gin.Context) {
 	var param models.TagIDParam
 	if err := c.ShouldBindUri(&param); err != nil {

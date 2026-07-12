@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type TemplateSortableField string
 
 const (
@@ -35,12 +33,12 @@ type Scheduling struct {
 }
 
 type TemplateBody struct {
-	Name        string    `json:"name" binding:"required,min=2,max=64"`
-	Description string    `json:"description,omitempty" binding:"omitempty,min=2"`
-	Tags        []int     `json:"tags,omitempty" binding:"omitempty,dive,min=1"`
-	Enabled     bool      `json:"enabled" binding:"required"`
-	StartsAt    time.Time `json:"starts_at" binding:"required"`
-	EndsAt      time.Time `json:"ends_at" binding:"required"`
+	Name        string  `json:"name" binding:"required,min=2,max=64"`
+	Description *string `json:"description,omitempty" binding:"omitempty,min=2"`
+	Tags        []int   `json:"tags,omitempty" binding:"omitempty,dive,min=1"`
+	Enabled     bool    `json:"enabled" binding:"required"`
+	StartsAt    string  `json:"starts_at" binding:"required"`
+	EndsAt      string  `json:"ends_at" binding:"required"`
 
 	Scheduling *Scheduling `json:"scheduling,omitempty"`
 }
@@ -64,4 +62,8 @@ type ListTemplatesQuery struct {
 
 type TemplateIDParam struct {
 	TemplateID int `uri:"template_id" binding:"required,min=1"`
+}
+
+type TemplateUpdateBody struct {
+	Enabled *bool `json:"enabled" binding:"required"`
 }

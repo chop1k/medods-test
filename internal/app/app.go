@@ -44,7 +44,7 @@ func Serve(args []string) {
 		panic(err)
 	}
 
-	db, err := connectDB(cfg.DB)
+	db, err := OpenDatabase(cfg.DB)
 
 	if err != nil {
 		panic(err)
@@ -68,7 +68,7 @@ func Serve(args []string) {
 	}
 }
 
-func connectDB(cfg *config.DatabaseConfig) (*sql.DB, error) {
+func OpenDatabase(cfg *config.DatabaseConfig) (*sql.DB, error) {
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name, cfg.SSLMode)
 
 	return sql.Open("pgx", dsn)
@@ -82,7 +82,7 @@ type FileInfo struct {
 }
 
 func migrate(cfg *config.DatabaseConfig, migrationsPath string) error {
-	db, err := connectDB(cfg)
+	db, err := OpenDatabase(cfg)
 
 	migrations, err := parseAndReadFiles(migrationsPath)
 

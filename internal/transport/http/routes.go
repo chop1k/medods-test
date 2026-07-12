@@ -28,12 +28,11 @@ func RegisterTaskRoutes(router *gin.RouterGroup, h *handler.TaskHandler) {
 }
 
 func RegisterTagRoutes(router *gin.RouterGroup, h *handler.TagHandler) {
-	tags := router.Group("/tasks/tags")
+	tags := router.Group("/grouping/tags")
 	{
 		tags.GET("", h.GetTags)
 		tags.POST("", h.CreateTag)
 		tags.GET("/:tag_id", h.GetTagByID)
-		tags.PUT("/:tag_id", h.UpdateTag)
 		tags.DELETE("/:tag_id", h.DeleteTag)
 	}
 }

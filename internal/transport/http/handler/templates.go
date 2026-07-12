@@ -96,7 +96,7 @@ func (h *TemplateHandler) UpdateTemplate(c *gin.Context) {
 		return
 	}
 
-	var body models.TemplateBody
+	var body models.TemplateUpdateBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		ValidationError(c, err)
 

@@ -417,7 +417,7 @@ paths:
         '500':
           $ref: "#/components/responses/ServerError"
 
-  /tasks/tags:
+  /grouping/tags:
     get:
       tags:
         - Grouping
@@ -511,7 +511,7 @@ paths:
         '500':
           $ref: "#/components/responses/ServerError"
 
-  /tasks/tags/{tag_id}:
+  /grouping/tags/{tag_id}:
     get:
       tags:
         - Grouping
@@ -659,6 +659,151 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /scheduling/connectivity-test:
+    post:
+      tags:
+        - Scheduling
+      summary: Webhook for testing reachability of the service for cron
+      operationId: schedulingConnectivityTest
+      responses:
+        '200':
+          description: Connectivity test successfull
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ip
+                  - scheme
+                properties:
+                  ip:
+                    type: string
+                  scheme:
+                    type: string
+                    enum: ['http', 'https']
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /scheduling/daily-cron-hook:
+    post:
+      tags:
+        - Scheduling
+      summary: Webhook for assigning daily tasks by cron
+      operationId: schedulingDailyCronHook
+      responses:
+        '200':
+          description: Daily tasks assigned successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /scheduling/weekly-cron-hook:
+    post:
+      tags:
+        - Scheduling
+      summary: Webhook for assigning weekly tasks by cron
+      operationId: schedulingWeeklyCronHook
+      responses:
+        '200':
+          description: Weekly tasks assigned successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /scheduling/monthly-cron-hook:
+    post:
+      tags:
+        - Scheduling
+      summary: Webhook for assigning monthly tasks by cron
+      operationId: schedulingMonthlyCronHook
+      responses:
+        '200':
+          description: Monthly tasks assigned successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '500':
+          $ref: "#/components/responses/ServerError"
+
+  /scheduling/calendar:
+    get:
+      tags:
+        - Scheduling
+      summary: Get calendar with tasks for selected period of time
+      operationId: getCalendar
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+            date: date
+          description: From which date to plan
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+            date: date
+          description: To which date to plan
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '405':
+          $ref: "#/components/responses/MethodNotAllowed"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+        '500':
+          $ref: "#/components/responses/ServerError"
 
 components:
   parameters:
@@ -700,9 +845,9 @@ components:
       type: object
       required:
         - name
-        - description
         - starts_at
         - ends_at
+        - enabled
       properties:
         name:
           type: string
@@ -728,6 +873,10 @@ components:
           type: string
           format: date-time
           description: Time when task should be ended
+        enabled:
+          type: boolean
+          default: true
+          description: Whether to schedule new tasks or not
         scheduling:
           oneOf:
             - $ref: "#/components/schemas/TemplateDailyOptions"
@@ -764,11 +913,7 @@ components:
         include:
           type: array
           items:
-            $ref: "#/components/schemas/DayOfWeek" #политика переносов в случае нерабочих дней
-        exclude:
-          type: array
-          items:
-            $ref: "#/components/schemas/DayOfWeekDateWithWildcards"
+            $ref: "#/components/schemas/DayOfWeek"
 
     TemplateMonthlyOptions:
       type: object
@@ -778,20 +923,16 @@ components:
         include:
           type: array
           items:
-            type: integer # что если в месяце меньше чем 31 день?
-            minimum: 1
-            maximum: 31
-        exclude:
-          type: array
-          items:
-            $ref: "#/components/schemas/DayDateWithWildcards"
+            oneOf:
+              - $ref: "#/components/schemas/DayOfWeek"
+              - $ref: "#/components/schemas/DayOfMonth"
 
     TemplateOneshotOptions:
       type: object
       required:
         - date
       properties:
-        dates:
+        include:
           type: array
           items:
             type: string
@@ -819,7 +960,7 @@ components:
 
     TemplateSortableField:
       type: string
-      enum: [id, name, description, starts_at, ends_at]
+      enum: [id, name, description, starts_at, ends_at, enabled]
       default: id
 
     Task:
@@ -830,20 +971,28 @@ components:
     TaskBody:
       type: object
       required:
-        - template_id
+        - status
       properties:
         template_id:
           type: integer
           description: Id of the template from which task was created
           example: 3827
+        moved_task_id:
+          type: integer
+          description: Id of the task from which this task was moved
+          example: 8572
         status:
           type: string
-          enum: ['pending', 'running', 'finished', "cancelled"]
+          enum: ['pending', 'running', 'finished', 'cancelled', 'moved', 'overdue']
           description: Current state of the task
         notes:
           type: string
           minLength: 2
           description: Additional notes about the task
+        date:
+          type: string
+          format: date
+          description: Date that the task was assigned at
         started_at:
           type: string
           format: date-time
@@ -855,7 +1004,7 @@ components:
 
     TaskSortableField:
       type: string
-      enum: [id, template_id, status, notes, started_at, ended_at]
+      enum: [id, template_id, moved_task_id, status, notes, date, started_at, ended_at]
       default: id
 
     Tag:
@@ -888,6 +1037,38 @@ components:
       type: string
       enum: [id, name, type]
       default: id
+
+    Calendar:
+      type: object
+      required:
+        - from
+        - to
+        - days
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarDay"
+
+    CalendarDay:
+      type: object
+      required:
+        - date
+        - tasks
+      properties:
+        date:
+          type: string
+          format: date
+        tasks:
+          oneOf:
+            - $ref: "#/components/schemas/Task"
+            - $ref: "#/components/schemas/TaskBody"
 
     PaginationMeta:
       type: object
@@ -945,6 +1126,11 @@ components:
     DayOfWeek:
       type: string
       enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    
+    DayOfMonth:
+      type: integer
+      minimum: 1
+      maximum: 31
 
     DayDateWithWildcards:
       type: string
@@ -962,17 +1148,6 @@ components:
       #   - summary: Every day excluded at specific month every year
       #     value: *-01-*
       #     description: This method allows to exclude every day at specific month every year
-
-    DayOfWeekDateWithWildcards:
-      type: string
-      description: The same as `#/components/schemas/DayDateWithWildcards` but DD means day of week.
-      # examples:
-      #   - summary: Every sunday in first month of the year excluded
-      #     value: 00-01-2026
-      #   - summary: Every monday every month of the year excluded
-      #     value: 01-*-2026
-      #   - summary: Every day of the month of the year is excluded
-      #     value: *-01-2026
 
     IdentifiableResource:
       type: object

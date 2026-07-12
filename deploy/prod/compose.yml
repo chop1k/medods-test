@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/18/docker
+    networks:
+      - app_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # app:
+  #   build:
+  #     context: ../../
+  #     dockerfile: deploy/prod/Dockerfile
+  #   container_name: go_app
+  #   environment:
+  #     DB_HOST: postgres
+  #     DB_PORT: 5432
+  #     DB_USER: ${POSTGRES_USER:-postgres}
+  #     DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  #     DB_NAME: ${POSTGRES_DB:-app_db}
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - app_network
+  #   restart: unless-stopped
+
+networks:
+  app_network:
+    driver: bridge
+    name: app_network
+
+volumes:
+  postgres_data:
+    name: postgres_data

@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type TagSortableField string
 
 const (
@@ -18,9 +16,8 @@ const (
 )
 
 type TagBody struct {
-	Name      string     `json:"name" binding:"required,min=2,max=64"`
-	Type      TagType    `json:"type" binding:"required,oneof=predefined user-defined"`
-	DeletedAt *time.Time `json:"deleted_at" binding:"omitempty"`
+	Name        string  `json:"name" binding:"required,min=2,max=64"`
+	Description *string `json:"description,omitempty" binding:"omitempty,min=2"`
 }
 
 type Tag struct {

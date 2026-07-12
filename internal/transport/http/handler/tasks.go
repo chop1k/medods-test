@@ -2,17 +2,22 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/chop1k/medods-test/internal/models"
+	"github.com/chop1k/medods-test/internal/repository"
 )
 
 type TaskHandler struct {
+	repository *repository.TasksStorage
 }
 
-func NewTaskHandler() *TaskHandler {
-	return &TaskHandler{}
+func NewTaskHandler(repository *repository.TasksStorage) *TaskHandler {
+	return &TaskHandler{
+		repository: repository,
+	}
 }
 
 func (h *TaskHandler) GetTasks(c *gin.Context) {
@@ -23,13 +28,16 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 		return
 	}
 
-	// TODO: fetch paginated tasks from the database using query.Page,
-	// query.Limit, query.Sort and query.SortField.
+	tasks, err := h.repository.GetAll(query.Page, query.Limit)
+
+	if err != nil {
+		panic(err)
+	}
 
 	c.JSON(http.StatusOK, models.TaskListResponse{
-		Data: []models.Task{},
+		Data: tasks,
 		Meta: models.PaginationMeta{
-			Total:      0,
+			Total:      len(tasks),
 			Page:       query.Page,
 			Limit:      query.Limit,
 			TotalPages: 0,
@@ -46,15 +54,18 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
-	// TODO: persist the new task and obtain its generated ID.
+	id, err := h.repository.Create(body)
+
+	if err != nil {
+		panic(err)
+	}
+
 	created := models.Task{
-		ID:       0,
+		ID:       id,
 		TaskBody: body,
 	}
 
-	// TODO: set the Location header to the URL of the created resource,
-	// e.g. c.Header("Location", fmt.Sprintf("/tasks/%d", created.ID))
-
+	c.Header("Location", "/v1/tasks/task/"+strconv.Itoa(id))
 	c.JSON(http.StatusCreated, created)
 }
 
@@ -66,10 +77,15 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 		return
 	}
 
-	// TODO: fetch the task by param.TaskID from the database.
-	// If it does not exist, respond with httpresponse.NotFound(c, "...").
+	task, err := h.repository.GetById(param.TaskID)
 
-	c.JSON(http.StatusOK, models.Task{ID: param.TaskID})
+	if err != nil {
+		NotFound(c, err.Error())
+
+		return
+	}
+
+	c.JSON(http.StatusOK, task)
 }
 
 func (h *TaskHandler) UpdateTask(c *gin.Context) {
@@ -87,11 +103,10 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		return
 	}
 
-	// TODO: verify the task with param.TaskID exists
-	// (httpresponse.NotFound(c, "...") if not), then persist the update.
-	updated := models.Task{
-		ID:       param.TaskID,
-		TaskBody: body,
+	updated, err := h.repository.UpdateById(param.TaskID, body)
+
+	if err != nil {
+		panic(err)
 	}
 
 	c.JSON(http.StatusOK, updated)
@@ -105,8 +120,11 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 		return
 	}
 
-	// TODO: verify the task with param.TaskID exists
-	// (httpresponse.NotFound(c, "...") if not), then delete it.
+	err := h.repository.RemoveById(param.TaskID)
+
+	if err != nil {
+		panic(err)
+	}
 
 	c.Status(http.StatusNoContent)
 }

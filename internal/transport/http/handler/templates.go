@@ -6,15 +6,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/chop1k/medods-test/internal/database"
 	"github.com/chop1k/medods-test/internal/models"
+	"github.com/chop1k/medods-test/internal/repository"
 )
 
 type TemplateHandler struct {
-	repository *database.TemplatesStorage
+	repository *repository.TemplatesStorage
 }
 
-func NewTemplateHandler(storage *database.TemplatesStorage) *TemplateHandler {
+func NewTemplateHandler(storage *repository.TemplatesStorage) *TemplateHandler {
 	return &TemplateHandler{
 		repository: storage,
 	}
@@ -22,6 +22,7 @@ func NewTemplateHandler(storage *database.TemplatesStorage) *TemplateHandler {
 
 func (h *TemplateHandler) GetTemplates(c *gin.Context) {
 	var query models.ListTemplatesQuery
+
 	if err := c.ShouldBindQuery(&query); err != nil {
 		ValidationError(c, err)
 
@@ -33,9 +34,6 @@ func (h *TemplateHandler) GetTemplates(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
-
-	// TODO: fetch paginated templates from the database using query.Page,
-	// query.Limit, query.Sort and query.SortField.
 
 	c.JSON(http.StatusOK, models.TemplateListResponse{
 		Data: templates,
@@ -50,6 +48,7 @@ func (h *TemplateHandler) GetTemplates(c *gin.Context) {
 
 func (h *TemplateHandler) CreateTemplate(c *gin.Context) {
 	var body models.TemplateBody
+
 	if err := c.ShouldBindJSON(&body); err != nil {
 		ValidationError(c, err)
 		return
@@ -66,7 +65,7 @@ func (h *TemplateHandler) CreateTemplate(c *gin.Context) {
 		TemplateBody: body,
 	}
 
-	c.Header("Location", "/v1/tasks/task"+strconv.Itoa(id))
+	c.Header("Location", "/v1/tasks/template/"+strconv.Itoa(id))
 	c.JSON(http.StatusCreated, created)
 }
 
@@ -113,8 +112,6 @@ func (h *TemplateHandler) UpdateTemplate(c *gin.Context) {
 	c.JSON(http.StatusOK, template)
 }
 
-// DeleteTemplate handles DELETE /tasks/templates/{template_id}
-// (operationId: deleteTemplate).
 func (h *TemplateHandler) DeleteTemplate(c *gin.Context) {
 	var param models.TemplateIDParam
 	if err := c.ShouldBindUri(&param); err != nil {

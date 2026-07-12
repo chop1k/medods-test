@@ -2,33 +2,43 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/chop1k/medods-test/internal/models"
+	"github.com/chop1k/medods-test/internal/repository"
 )
 
 type TagHandler struct {
+	repository *repository.TagsStorage
 }
 
-func NewTagHandler() *TagHandler {
-	return &TagHandler{}
+func NewTagHandler(repository *repository.TagsStorage) *TagHandler {
+	return &TagHandler{
+		repository: repository,
+	}
 }
 
 func (h *TagHandler) GetTags(c *gin.Context) {
 	var query models.ListTagsQuery
+
 	if err := c.ShouldBindQuery(&query); err != nil {
 		ValidationError(c, err)
+
 		return
 	}
 
-	// TODO: fetch paginated tags from the database using query.Page,
-	// query.Limit, query.Sort and query.SortField.
+	tags, err := h.repository.GetAll(query.Page, query.Limit)
+
+	if err != nil {
+		panic(err)
+	}
 
 	c.JSON(http.StatusOK, models.TagListResponse{
-		Data: []models.Tag{},
+		Data: tags,
 		Meta: models.PaginationMeta{
-			Total:      0,
+			Total:      len(tags),
 			Page:       query.Page,
 			Limit:      query.Limit,
 			TotalPages: 0,
@@ -38,34 +48,46 @@ func (h *TagHandler) GetTags(c *gin.Context) {
 
 func (h *TagHandler) CreateTag(c *gin.Context) {
 	var body models.TagBody
+
 	if err := c.ShouldBindJSON(&body); err != nil {
 		ValidationError(c, err)
+
 		return
 	}
 
-	// TODO: persist the new tag and obtain its generated ID.
+	id, err := h.repository.Create(body)
+
+	if err != nil {
+		panic(err)
+	}
+
 	created := models.Tag{
-		ID:      0,
+		ID:      id,
 		TagBody: body,
 	}
 
-	// TODO: set the Location header to the URL of the created resource,
-	// e.g. c.Header("Location", fmt.Sprintf("/tasks/tags/%d", created.ID))
-
+	c.Header("Location", "/v1/grouping/tags/"+strconv.Itoa(id))
 	c.JSON(http.StatusCreated, created)
 }
 
 func (h *TagHandler) GetTagByID(c *gin.Context) {
 	var param models.TagIDParam
+
 	if err := c.ShouldBindUri(&param); err != nil {
 		ValidationError(c, err)
+
 		return
 	}
 
-	// TODO: fetch the tag by param.TagID from the database.
-	// If it does not exist, respond with httpresponse.NotFound(c, "...").
+	tag, err := h.repository.GetById(param.TagID)
 
-	c.JSON(http.StatusOK, models.Tag{ID: param.TagID})
+	if err != nil {
+		NotFound(c, err.Error())
+
+		return
+	}
+
+	c.JSON(http.StatusOK, tag)
 }
 
 func (h *TagHandler) UpdateTag(c *gin.Context) {
@@ -81,11 +103,10 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 		return
 	}
 
-	// TODO: verify the tag with param.TagID exists
-	// (httpresponse.NotFound(c, "...") if not), then persist the update.
-	updated := models.Tag{
-		ID:      param.TagID,
-		TagBody: body,
+	updated, err := h.repository.UpdateById(param.TagID, body)
+
+	if err != nil {
+		panic(err)
 	}
 
 	c.JSON(http.StatusOK, updated)
@@ -98,8 +119,11 @@ func (h *TagHandler) DeleteTag(c *gin.Context) {
 		return
 	}
 
-	// TODO: verify the tag with param.TagID exists
-	// (httpresponse.NotFound(c, "...") if not), then delete it.
+	err := h.repository.RemoveById(param.TagID)
+
+	if err != nil {
+		panic(err)
+	}
 
 	c.Status(http.StatusNoContent)
 }

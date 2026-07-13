@@ -25,6 +25,8 @@ func main() {
 	switch cmd {
 	case "serve":
 		app.Serve(args)
+	case "seed":
+		app.Seed(args)
 	case "migrate":
 		app.Migrate(args)
 	case "-h", "--help", "help":

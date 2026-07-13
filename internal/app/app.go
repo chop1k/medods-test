@@ -34,6 +34,20 @@ func Migrate(args []string) {
 	}
 }
 
+func Seed(args []string) {
+	fs := flag.NewFlagSet("seed", flag.ExitOnError)
+
+	cfg := config.RegisterConfigFlags(fs)
+
+	if err := fs.Parse(args); err != nil {
+		panic(err)
+	}
+
+	if err := seed(cfg.DB, cfg.Seeds.Path); err != nil {
+		panic(err)
+	}
+}
+
 func Serve(args []string) {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 
@@ -92,6 +106,62 @@ type FileInfo struct {
 	Path    string
 }
 
+func seed(cfg *config.DatabaseConfig, seedsPath string) error {
+	db, err := OpenDatabase(cfg)
+
+	seeds, err := parseAndReadFiles(seedsPath)
+
+	if err != nil {
+		return err
+	}
+
+	for _, seed := range seeds {
+		tx, err := db.Begin()
+
+		if err != nil {
+			return err
+		}
+
+		var id int
+
+		err = db.QueryRow("select id from \"app\".\"seeds\" where id = $1", seed.ID).Scan(&id)
+
+		if err == nil {
+			continue
+		}
+
+		err = runSeedTransaction(tx, seed)
+
+		if err != nil {
+			return errors.Join(fmt.Errorf("got error at seed %d", seed.ID), err)
+		}
+	}
+
+	return nil
+}
+
+func runSeedTransaction(tx *sql.Tx, seed FileInfo) error {
+	defer tx.Rollback()
+
+	_, err := tx.Exec(seed.Content)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec("insert into \"app\".\"seeds\" (\"id\", \"name\", \"created_at\") values ($1, $2, now())", seed.ID, seed.Name)
+
+	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func migrate(cfg *config.DatabaseConfig, migrationsPath string) error {
 	db, err := OpenDatabase(cfg)
 
@@ -116,7 +186,7 @@ func migrate(cfg *config.DatabaseConfig, migrationsPath string) error {
 			continue
 		}
 
-		err = runTransaction(tx, migration)
+		err = runMigrationTransaction(tx, migration)
 
 		if err != nil {
 			return errors.Join(fmt.Errorf("got error at migration %d", migration.ID), err)
@@ -126,7 +196,7 @@ func migrate(cfg *config.DatabaseConfig, migrationsPath string) error {
 	return nil
 }
 
-func runTransaction(tx *sql.Tx, migration FileInfo) error {
+func runMigrationTransaction(tx *sql.Tx, migration FileInfo) error {
 	defer tx.Rollback()
 
 	_, err := tx.Exec(migration.Content)
@@ -151,7 +221,7 @@ func runTransaction(tx *sql.Tx, migration FileInfo) error {
 func parseAndReadFiles(folderPath string) ([]FileInfo, error) {
 	entries, err := os.ReadDir(folderPath)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения папки: %v", err)
+		return nil, fmt.Errorf("error reading directory: %v", err)
 	}
 
 	var fileInfos []FileInfo
@@ -186,7 +256,7 @@ func parseAndReadFiles(folderPath string) ([]FileInfo, error) {
 
 		content, err := os.ReadFile(fullPath)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка чтения файла %s: %v", fileName, err)
+			return nil, fmt.Errorf("error reading file %s: %v", fileName, err)
 		}
 
 		fileInfo := FileInfo{

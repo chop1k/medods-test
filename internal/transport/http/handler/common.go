@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/chop1k/medods-test/internal/models"
+	"github.com/chop1k/medods-test/internal/domain/models"
 )
 
 // Error writes a generic ErrorResponse with the given status/title/detail.

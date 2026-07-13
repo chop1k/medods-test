@@ -2,21 +2,24 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/chop1k/medods-test/internal/database"
-	"github.com/chop1k/medods-test/internal/models"
+	"github.com/chop1k/medods-test/internal/domain/models"
+	"github.com/chop1k/medods-test/internal/domain/scheduling"
+	"github.com/chop1k/medods-test/internal/repository"
 )
 
 type SchedulingHandler struct {
-	templatesRepository *database.TemplatesStorage
-	tasksRepository     *database.TasksStorage
+	templatesRepository *repository.TemplatesStorage
+	tasksRepository     *repository.TasksStorage
 }
 
-func NewSchedulingHandler(storage *database.TemplatesStorage) *SchedulingHandler {
+func NewSchedulingHandler(storage *repository.TemplatesStorage, tasksStorage *repository.TasksStorage) *SchedulingHandler {
 	return &SchedulingHandler{
 		templatesRepository: storage,
+		tasksRepository:     tasksStorage,
 	}
 }
 
@@ -27,13 +30,18 @@ func (h *SchedulingHandler) ConnectivityTest(c *gin.Context) {
 	})
 }
 
+func (h *SchedulingHandler) updateOverdueTasks() {
+}
+
 func (h *SchedulingHandler) DailyCronHook(c *gin.Context) {
+	h.updateOverdueTasks()
+
 	page := 1
 
 	tasks := []models.TaskBody{}
 
-	// from := time.Now()
-	// to := from.AddDate(0, 0, 1)
+	from := time.Now()
+	to := from.AddDate(0, 0, 1)
 
 	for {
 		templates, err := h.templatesRepository.GetAllDaily(page, 256)
@@ -46,35 +54,135 @@ func (h *SchedulingHandler) DailyCronHook(c *gin.Context) {
 			break
 		}
 
-		// for _, template := range templates {
-		// 	// _tasks := scheduling.ScheduleDailyTask(template, from, to)
+		for _, template := range templates {
+			tasks = append(tasks, scheduling.ScheduleDailyTask(template, from, to)...)
+		}
 
-		// 	// tasks = append(tasks, _tasks...)
-		// }
+		page++
 	}
 
-	ids, err := h.tasksRepository.CreateBulk(tasks)
+	ids := []int{}
 
-	if err != nil {
-		panic(err)
+	for _, task := range tasks {
+		id, err := h.tasksRepository.Create(nil, task)
+
+		if err != nil {
+			panic(err)
+		}
+
+		ids = append(ids, id)
 	}
 
 	results := []models.Task{}
 
 	for i, id := range ids {
-		results[i] = models.Task{
+		results = append(results, models.Task{
 			ID:       id,
 			TaskBody: tasks[i],
-		}
+		})
 	}
 
 	c.JSON(http.StatusOK, results)
 }
 
 func (h *SchedulingHandler) WeeklyCronHook(c *gin.Context) {
+	page := 1
+
+	tasks := []models.TaskBody{}
+
+	from := time.Now()
+	to := from.AddDate(0, 0, 7)
+
+	for {
+		templates, err := h.templatesRepository.GetAllWeekly(page, 256)
+
+		if err != nil {
+			panic(err)
+		}
+
+		if len(templates) == 0 {
+			break
+		}
+
+		for _, template := range templates {
+			tasks = append(tasks, scheduling.ScheduleWeeklyTask(template, from, to)...)
+		}
+
+		page++
+	}
+
+	ids := []int{}
+
+	for _, task := range tasks {
+		id, err := h.tasksRepository.Create(nil, task)
+
+		if err != nil {
+			panic(err)
+		}
+
+		ids = append(ids, id)
+	}
+
+	results := []models.Task{}
+
+	for i, id := range ids {
+		results = append(results, models.Task{
+			ID:       id,
+			TaskBody: tasks[i],
+		})
+	}
+
+	c.JSON(http.StatusOK, results)
 }
 
 func (h *SchedulingHandler) MonthlyCronHook(c *gin.Context) {
+	page := 1
+
+	tasks := []models.TaskBody{}
+
+	from := time.Now()
+	to := from.AddDate(0, 1, 0)
+
+	for {
+		templates, err := h.templatesRepository.GetAllMonthly(page, 256)
+
+		if err != nil {
+			panic(err)
+		}
+
+		if len(templates) == 0 {
+			break
+		}
+
+		for _, template := range templates {
+			tasks = append(tasks, scheduling.ScheduleMonthlyTask(template, from, to)...)
+		}
+
+		page++
+	}
+
+	ids := []int{}
+
+	for _, task := range tasks {
+		id, err := h.tasksRepository.Create(nil, task)
+
+		if err != nil {
+			panic(err)
+		}
+
+		ids = append(ids, id)
+	}
+
+	results := []models.Task{}
+
+	for i, id := range ids {
+		results = append(results, models.Task{
+			ID:       id,
+			TaskBody: tasks[i],
+		})
+	}
+
+	c.JSON(http.StatusOK, results)
 }
 
 func (h *SchedulingHandler) GetCalendar(c *gin.Context) {

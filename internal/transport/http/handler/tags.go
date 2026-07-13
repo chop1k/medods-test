@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"errors"
+	"math"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/chop1k/medods-test/internal/models"
+	"github.com/chop1k/medods-test/internal/domain/models"
 	"github.com/chop1k/medods-test/internal/repository"
 )
 
@@ -29,10 +31,14 @@ func (h *TagHandler) GetTags(c *gin.Context) {
 		return
 	}
 
-	tags, err := h.repository.GetAll(query.Page, query.Limit)
+	tags, count, err := h.repository.GetAll(query.Page, query.Limit, query.Sort, query.SortField)
 
 	if err != nil {
 		panic(err)
+	}
+
+	for i := range tags {
+		tags[i].Type = nil
 	}
 
 	c.JSON(http.StatusOK, models.TagListResponse{
@@ -41,7 +47,7 @@ func (h *TagHandler) GetTags(c *gin.Context) {
 			Total:      len(tags),
 			Page:       query.Page,
 			Limit:      query.Limit,
-			TotalPages: 0,
+			TotalPages: int(math.Ceil(float64(count) / float64(query.Limit))),
 		},
 	})
 }
@@ -54,6 +60,8 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 
 		return
 	}
+
+	body.Type = nil
 
 	id, err := h.repository.Create(body)
 
@@ -87,6 +95,8 @@ func (h *TagHandler) GetTagByID(c *gin.Context) {
 		return
 	}
 
+	tag.Type = nil
+
 	c.JSON(http.StatusOK, tag)
 }
 
@@ -94,10 +104,23 @@ func (h *TagHandler) DeleteTag(c *gin.Context) {
 	var param models.TagIDParam
 	if err := c.ShouldBindUri(&param); err != nil {
 		ValidationError(c, err)
+
 		return
 	}
 
-	err := h.repository.RemoveById(param.TagID)
+	tag, err := h.repository.GetById(param.TagID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if *tag.Type == models.TagTypePredefined {
+		ValidationError(c, errors.New("cannot remove predefined tag"))
+
+		return
+	}
+
+	err = h.repository.RemoveById(param.TagID)
 
 	if err != nil {
 		panic(err)

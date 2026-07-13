@@ -17,12 +17,12 @@ func RegisterTemplateRoutes(router *gin.RouterGroup, h *handler.TemplateHandler)
 }
 
 func RegisterTaskRoutes(router *gin.RouterGroup, h *handler.TaskHandler) {
-	tasks := router.Group("/tasks")
+	tasks := router.Group("/tasks/tasks")
 	{
 		tasks.GET("", h.GetTasks)
 		tasks.POST("", h.CreateTask)
 		tasks.GET("/:task_id", h.GetTaskByID)
-		tasks.PUT("/:task_id", h.UpdateTask)
+		tasks.PATCH("/:task_id", h.UpdateTask)
 		tasks.DELETE("/:task_id", h.DeleteTask)
 	}
 }
@@ -42,6 +42,8 @@ func RegisterSchedulingRoutes(router *gin.RouterGroup, h *handler.SchedulingHand
 	{
 		scheduling.POST("/connectivity-test", h.ConnectivityTest)
 		scheduling.POST("/daily-cron-hook", h.DailyCronHook)
+		scheduling.POST("/weekly-cron-hook", h.WeeklyCronHook)
+		scheduling.POST("/monthly-cron-hook", h.MonthlyCronHook)
 		scheduling.GET("/calendar", h.GetCalendar)
 	}
 }

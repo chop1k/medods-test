@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"fmt"
+	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/chop1k/medods-test/internal/models"
+	"github.com/chop1k/medods-test/internal/domain/models"
 	"github.com/chop1k/medods-test/internal/repository"
 )
 
@@ -29,7 +32,9 @@ func (h *TemplateHandler) GetTemplates(c *gin.Context) {
 		return
 	}
 
-	templates, err := h.repository.GetAll(query.Page, query.Limit)
+	fmt.Printf("%s %s\n", query.Sort, query.SortField)
+
+	templates, count, err := h.repository.GetAll(query.Page, query.Limit, query.Sort, query.SortField)
 
 	if err != nil {
 		panic(err)
@@ -41,7 +46,7 @@ func (h *TemplateHandler) GetTemplates(c *gin.Context) {
 			Total:      len(templates),
 			Page:       query.Page,
 			Limit:      query.Limit,
-			TotalPages: 0,
+			TotalPages: int(math.Ceil(float64(count) / float64(query.Limit))),
 		},
 	})
 }
@@ -96,6 +101,18 @@ func (h *TemplateHandler) UpdateTemplate(c *gin.Context) {
 		return
 	}
 
+	template, err := h.repository.GetById(param.TemplateID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if template.DeletedAt != nil {
+		NotFound(c, "not found")
+
+		return
+	}
+
 	var body models.TemplateUpdateBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		ValidationError(c, err)
@@ -103,7 +120,7 @@ func (h *TemplateHandler) UpdateTemplate(c *gin.Context) {
 		return
 	}
 
-	template, err := h.repository.UpdateById(param.TemplateID, body)
+	template, err = h.repository.UpdateById(param.TemplateID, body)
 
 	if err != nil {
 		panic(err)
@@ -120,7 +137,27 @@ func (h *TemplateHandler) DeleteTemplate(c *gin.Context) {
 		return
 	}
 
-	err := h.repository.RemoveById(param.TemplateID)
+	template, err := h.repository.GetById(param.TemplateID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if template.DeletedAt != nil {
+		NotFound(c, "not found")
+
+		return
+	}
+
+	enabled := false
+	deletedAt := time.Now().Format(time.RFC3339)
+
+	updated := models.TemplateUpdateBody{
+		Enabled:   &enabled,
+		DeletedAt: &deletedAt,
+	}
+
+	_, err = h.repository.UpdateById(param.TemplateID, updated)
 
 	if err != nil {
 		panic(err)

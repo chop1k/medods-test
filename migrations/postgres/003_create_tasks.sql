@@ -16,8 +16,10 @@ create table "app"."tasks" (
     "status" "app"."task_status" not null,
     "notes" text,
     "date" date not null,
-    "started_at" timestamp,
-    "ended_at" timestamp,
+    "started_at" time,
+    "ended_at" time,
+
+    "deleted_at" timestamp,
 
     constraint "app_tasks_id_pkey"
         primary key (id),
@@ -28,7 +30,8 @@ create table "app"."tasks" (
     constraint "app_tasks_moved_to_task_id_fkey"
         foreign key (moved_task_id)
             references "app"."tasks" (id)
-                on delete cascade,
+                on delete cascade
+                    deferrable initially deferred,
 
     constraint "app_tasks_timestamps_chck" check (
         not ("started_at" is null and "ended_at" is not null)
@@ -36,28 +39,13 @@ create table "app"."tasks" (
     constraint "app_tasks_empty_chck" check (
         "notes" is null or "notes" != ''
     ),
-    constraint "app_tasks_one_of_fkeys_chck" check (
-        "status" != 'moved' and "template_id" is not null
-    ),
 
-    constraint "app_tasks_pending_chck" check (
-        "status" = 'pending' and "started_at" is null and "ended_at" is null
-    ),
-    constraint "app_tasks_running_chck" check (
-        "status" = 'running' and "started_at" is not null
-    ),
-    constraint "app_tasks_finished_chck" check (
-        "status" = 'finished' and "started_at" is not null and "ended_at" is not null
-    ),
-    constraint "app_tasks_cancelled_chck" check (
-        "status" = 'cancelled' and (
-            ("started_at" is not null and "ended_at" is not null) or ("started_at" != null and "ended_at" is null)
-        )
-    ),
-    constraint "app_tasks_moved_chck" check (
-        "status" = 'moved' and "moved_task_id" is not null and "template_id" is null
-    ),
-    constraint "app_tasks_overdue_chck" check (
-        "status" = 'overdue' and "started_at" is not null and "ended_at" is null
+    constraint "app_tasks_status_chck" check (
+        ("status" = 'pending' and "started_at" is null and "ended_at" is null) or
+        ("status" = 'running' and "started_at" is not null) or 
+        ("status" = 'finished' and "started_at" is not null and "ended_at" is not null) or
+        ("status" = 'cancelled' and (("started_at" is not null and "ended_at" is not null) or ("started_at" != null and "ended_at" is null))) or
+        ("status" = 'moved' and "moved_task_id" is not null) or
+        ("status" = 'overdue' and "started_at" is not null and "ended_at" is null)
     )
 );

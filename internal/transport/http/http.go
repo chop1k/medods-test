@@ -28,7 +28,7 @@ func NewRouter(db *sql.DB) *gin.Engine {
 	RegisterTemplateRoutes(v1, handler.NewTemplateHandler(templateStorage))
 	RegisterTaskRoutes(v1, handler.NewTaskHandler(taskStorage))
 	RegisterTagRoutes(v1, handler.NewTagHandler(tagStorage))
-	RegisterSchedulingRoutes(v1, handler.NewSchedulingHandler(templateStorage))
+	RegisterSchedulingRoutes(v1, handler.NewSchedulingHandler(templateStorage, taskStorage))
 
 	return router
 }

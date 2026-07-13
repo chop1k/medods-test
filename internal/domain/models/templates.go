@@ -41,6 +41,8 @@ type TemplateBody struct {
 	EndsAt      string  `json:"ends_at" binding:"required"`
 
 	Scheduling *Scheduling `json:"scheduling,omitempty"`
+
+	DeletedAt *string `json:"deleted_at"`
 }
 
 type Template struct {
@@ -65,5 +67,6 @@ type TemplateIDParam struct {
 }
 
 type TemplateUpdateBody struct {
-	Enabled *bool `json:"enabled" binding:"required"`
+	Enabled   *bool   `json:"enabled" binding:"required"`
+	DeletedAt *string `json:"deleted_at"`
 }

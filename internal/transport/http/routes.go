@@ -11,7 +11,7 @@ func RegisterTemplateRoutes(router *gin.RouterGroup, h *handler.TemplateHandler)
 		templates.GET("", h.GetTemplates)
 		templates.POST("", h.CreateTemplate)
 		templates.GET("/:template_id", h.GetTemplateByID)
-		templates.PUT("/:template_id", h.UpdateTemplate)
+		templates.PATCH("/:template_id", h.UpdateTemplate)
 		templates.DELETE("/:template_id", h.DeleteTemplate)
 	}
 }

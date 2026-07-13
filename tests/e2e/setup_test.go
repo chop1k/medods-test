@@ -23,7 +23,7 @@ var (
 )
 
 func TruncateDB(t *testing.T) {
-	_, err := testDB.Exec("truncate table \"app\".\"templates\", \"app\".\"tasks\", \"app\".\"tags\" cascade")
+	_, err := testDB.Exec("truncate table \"app\".\"templates\", \"app\".\"tasks\", \"app\".\"tags\", \"app\".\"templates_tags\" cascade")
 
 	require.Nil(t, err, "cannot truncate test database: ", err)
 }

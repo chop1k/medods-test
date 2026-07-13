@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"database/sql"
+	"flag"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -29,18 +30,11 @@ func TruncateDB(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	cfg := config.Config{
-		DB: &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "postgres",
-			Name:     "app_db",
-			SSLMode:  "disable",
-		},
-	}
+	fs := flag.NewFlagSet("migrate", flag.ExitOnError)
 
-	db, err := app.OpenDatabase(cfg.DB)
+	cfg := config.RegisterDatabaseFlags(fs)
+
+	db, err := app.OpenDatabase(cfg)
 
 	if err != nil {
 		panic(err)

@@ -188,7 +188,7 @@ func TestUpdateTemplates(t *testing.T) {
 	validUpdateJson, err := json.Marshal(validUpdateBody)
 	require.Nil(t, err, "cannot marshal the update valid body", err)
 
-	validUpdateRequest, err := http.NewRequest(http.MethodPut, templateURL(templateID), bytes.NewReader(validUpdateJson))
+	validUpdateRequest, err := http.NewRequest(http.MethodPatch, templateURL(templateID), bytes.NewReader(validUpdateJson))
 	validUpdateRequest.Header.Add("content-type", "application/json")
 	require.Nil(t, err, "cannot create valid update template request", err)
 
@@ -203,7 +203,7 @@ func TestUpdateTemplates(t *testing.T) {
 	invalidUpdateJson, err := json.Marshal(invalidUpdateBody)
 	require.Nil(t, err, "cannot marshal the update invalid body", err)
 
-	invalidUpdateRequest, err := http.NewRequest(http.MethodPut, templateURL(templateID), bytes.NewReader(invalidUpdateJson))
+	invalidUpdateRequest, err := http.NewRequest(http.MethodPatch, templateURL(templateID), bytes.NewReader(invalidUpdateJson))
 	invalidUpdateRequest.Header.Add("content-type", "application/json")
 	require.Nil(t, err, "cannot create invalud update template request", err)
 

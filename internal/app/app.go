@@ -109,6 +109,11 @@ type FileInfo struct {
 func seed(cfg *config.DatabaseConfig, seedsPath string) error {
 	db, err := OpenDatabase(cfg)
 
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
 	seeds, err := parseAndReadFiles(seedsPath)
 
 	if err != nil {
@@ -164,6 +169,11 @@ func runSeedTransaction(tx *sql.Tx, seed FileInfo) error {
 
 func migrate(cfg *config.DatabaseConfig, migrationsPath string) error {
 	db, err := OpenDatabase(cfg)
+
+	if err != nil {
+		return err
+	}
+	defer db.Close()
 
 	migrations, err := parseAndReadFiles(migrationsPath)
 

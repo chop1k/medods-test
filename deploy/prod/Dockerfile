@@ -5,29 +5,24 @@ FROM golang:1.26.4-alpine AS builder
 
 WORKDIR /src
 
-# Cached separately from source so dependency downloads aren't repeated on
-# every code change.
 COPY go.mod go.sum* ./
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/trackmytasks ./cmd/track-my-tasks
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/trackmytasks ./cmd/track-my-tasks
 
 # ---- Runtime stage ----------------------------------------------------------
 FROM alpine AS runtime
 
 WORKDIR /app
-COPY --from=builder /out/trackmytasks /app/trackmytasks
 
-COPY migrations /app/migrations
+COPY --from=builder /out/trackmytasks /app/trackmytasks
+COPY --from=builder /src/migrations /app/migrations
+COPY --from=builder /src/seeds /app/seeds
 
 USER nobody:nogroup
 
-# All server/database options are configurable via flags or env vars - see
-# internal/config. Example:
-#   docker run app serve --http-port=8080
-#   docker run -e DB_HOST=postgres app migrate
-#   docker run -e DB_HOST=postgres app migrate-and-serve
-ENTRYPOINT ["/app/trackmytasks"]
-CMD ["serve"]
+ENTRYPOINT ["sh", "-c", "/app/trackmytasks migrate && /app/trackmytasks seed && /app/trackmytasks serve"]

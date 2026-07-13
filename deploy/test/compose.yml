@@ -22,8 +22,8 @@ services:
   app:
     build:
       context: .
-      dockerfile: deploy/prod/Dockerfile
-    container_name: app
+      dockerfile: deploy/test/Dockerfile
+    container_name: e2e
     environment:
       GIN_MODE: release
       DB_HOST: postgres
@@ -31,6 +31,8 @@ services:
       DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DB_NAME: ${POSTGRES_DB:-app_db}
+      MIGRATIONS_PATH: /app/migrations/postgres
+      SEEDS_PATH: /app/seeds/postgres
     ports:
       - "8080:8080"
     depends_on:
@@ -38,7 +40,6 @@ services:
         condition: service_healthy
     networks:
       - app_network
-    restart: unless-stopped
 
 networks:
   app_network:

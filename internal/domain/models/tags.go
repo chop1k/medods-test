@@ -3,9 +3,9 @@ package models
 type TagSortableField string
 
 const (
-	TagSortByID   TagSortableField = "id"
-	TagSortByName TagSortableField = "name"
-	TagSortByType TagSortableField = "type"
+	TagSortByID          TagSortableField = "id"
+	TagSortByName        TagSortableField = "name"
+	TagSortByDescription TagSortableField = "description"
 )
 
 type TagType string
@@ -16,8 +16,9 @@ const (
 )
 
 type TagBody struct {
-	Name        string  `json:"name" binding:"required,min=2,max=64"`
-	Description *string `json:"description,omitempty" binding:"omitempty,min=2"`
+	Name        string   `json:"name" binding:"required,min=2,max=64"`
+	Description *string  `json:"description,omitempty" binding:"omitempty,min=2"`
+	Type        *TagType `json:"type,omitempty"`
 }
 
 type Tag struct {

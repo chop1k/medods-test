@@ -10,6 +10,8 @@ create table "app"."templates" (
 
     "scheduling" jsonb not null,
 
+    "deleted_at" timestamp,
+
     constraint "app_templates_id_pkey"
         primary key (id),
     constraint "app_templates_empty_chck" check (

@@ -56,15 +56,10 @@ paths:
                   meta:
                     $ref: '#/components/schemas/PaginationMeta'
               examples:
-                default:
-                  summary: Empty response example
-                  value:
-                    data: []
-                    meta:
-                      total: 0
-                      page: 1
-                      limit: 20
-                      totalPages: 0
+                empty:
+                  $ref: "#/components/examples/EmptyCollectionExample"
+                collection:
+                  $ref: "#/components/examples/TemplatesCollectionExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '405':
@@ -83,11 +78,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TemplateBody'
-            # examples:
-            #   default:
-            #     summary: Example of creation of typical task
-            #     value:
-            #       a: 123
+            examples:
+              create_template:
+                $ref: "#/components/examples/CreateTemplateExample"
       responses:
         '201':
           description: Resource created
@@ -100,6 +93,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Template'
+              examples:
+                default:
+                  $ref: "#/components/examples/TemplateExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '405':
@@ -128,6 +124,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Template'
+              examples:
+                default:
+                  $ref: "#/components/examples/TemplateExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '404':
@@ -155,6 +154,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TemplateBody'
+            examples:
+              default:
+                $ref: "#/components/examples/CreateTemplateExample"
       responses:
         '200':
           description: Template updated successfully
@@ -162,6 +164,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Template'
+              examples:
+                default:
+                  $ref: "#/components/examples/TemplateExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '404':
@@ -226,15 +231,10 @@ paths:
                   meta:
                     $ref: '#/components/schemas/PaginationMeta'
               examples:
-                default:
-                  summary: Empty response example
-                  value:
-                    data: []
-                    meta:
-                      total: 0
-                      page: 1
-                      limit: 20
-                      totalPages: 0
+                empty:
+                  $ref: "#/components/examples/EmptyCollectionExample"
+                collection:
+                  $ref: "#/components/examples/TasksCollectionExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '405':
@@ -263,6 +263,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
+              examples:
+                default:
+                  $ref: "#/components/examples/TaskExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '404':
@@ -301,6 +304,15 @@ paths:
                   finished: "#/components/schemas/FinishedTaskBody"
                   cancelled: "#/components/schemas/CancelledTaskBody"
                   moved: "#/components/schemas/MovedTaskBody"
+            examples:
+              running:
+                $ref: "#/components/examples/UpdateTaskRunningExample"
+              finished:
+                $ref: "#/components/examples/UpdateTaskFinishedExample"
+              cancelled:
+                $ref: "#/components/examples/UpdateTaskCancelledExample"
+              moved:
+                $ref: "#/components/examples/UpdateTaskMovedExample"
 
       responses:
         '200':
@@ -309,6 +321,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
+              examples:
+                default:
+                  $ref: "#/components/examples/TaskExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '404':
@@ -373,15 +388,10 @@ paths:
                   meta:
                     $ref: '#/components/schemas/PaginationMeta'
               examples:
-                default:
-                  summary: Empty response example
-                  value:
-                    data: []
-                    meta:
-                      total: 0
-                      page: 1
-                      limit: 20
-                      totalPages: 0
+                empty:
+                  $ref: "#/components/examples/EmptyCollectionExample"
+                collection:
+                  $ref: "#/components/examples/TagsCollectionExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '405':
@@ -400,11 +410,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TagBody'
-            # examples:
-            #   default:
-            #     summary: Example of creation of typical tag
-            #     value:
-            #       a: 123
+            examples:
+              default:
+                $ref: "#/components/examples/CreateTagExample"
       responses:
         '201':
           description: Resource created successfully
@@ -417,6 +425,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tag'
+              examples:
+                default:
+                  $ref: "#/components/examples/TagExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '405':
@@ -445,6 +456,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tag'
+              examples:
+                default:
+                  $ref: "#/components/examples/TagExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '404':
@@ -500,6 +514,9 @@ paths:
                   scheme:
                     type: string
                     enum: ['http', 'https']
+              examples:
+                default:
+                  $ref: "#/components/examples/ConnectivityTestExample"
         '405':
           $ref: "#/components/responses/MethodNotAllowed"
         '500':
@@ -520,6 +537,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Task'
+              examples:
+                default:
+                  $ref: "#/components/examples/AssignedTasksExample"
         '405':
           $ref: "#/components/responses/MethodNotAllowed"
         '500':
@@ -540,6 +560,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Task'
+              examples:
+                default:
+                  $ref: "#/components/examples/AssignedTasksExample"
         '405':
           $ref: "#/components/responses/MethodNotAllowed"
         '500':
@@ -560,6 +583,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Task'
+              examples:
+                default:
+                  $ref: "#/components/examples/AssignedTasksExample"
         '405':
           $ref: "#/components/responses/MethodNotAllowed"
         '500':
@@ -593,6 +619,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Calendar'
+              examples:
+                default:
+                  $ref: "#/components/examples/CalendarExample"
         '400':
           $ref: "#/components/responses/BadRequest"
         '405':
@@ -1019,6 +1048,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ValidationErrorResponse'
+          examples:
+            default:
+              $ref: "#/components/examples/BadRequestExample"
 
     NotFound:
       description: Not found returned if client requested a resource that was removed or was not yet created.
@@ -1026,6 +1058,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: "#/components/examples/NotFoundExample"
 
     MethodNotAllowed:
       description: Method not allowed returned if client tries to access the endpoint using wrong http method.
@@ -1034,6 +1069,9 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
             # todo: allow header
+          examples:
+            default:
+              $ref: "#/components/examples/MethodNotAllowedExample"
 
     ServerError:
       description: Unexpected internal error returned if something went wrong at server side.
@@ -1041,3 +1079,241 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: "#/components/examples/ServerErrorExample"
+
+  examples:
+    EmptyCollectionExample:
+      summary: Empty response example
+      description: Empty response returned when there is no resources corresponding to the request
+      value:
+        data: []
+        meta:
+          total: 0
+          page: 1
+          limit: 20
+          total_pages: 0
+
+    TemplatesCollectionExample:
+      summary: Collection of templates
+      value:
+        data:
+          - id: 1
+            name: Make some task
+            description: To make the task done you should do this and that
+            tags:
+              - 324
+              - 222
+            starts_at: "13:00:00"
+            ends_at: "14:00:00"
+            enabled: true
+            scheduling:
+              type: daily
+              exclude:
+                - saturday
+                - sunday
+          - id: 2
+            name: Make another task
+            starts_at: "10:00:00"
+            ends_at: "14:00:00"
+            enabled: true
+            scheduling:
+              type: weekly
+              include:
+                - monday
+        meta:
+          total: 2
+          page: 1
+          limit: 20
+          total_pages: 1
+
+    CreateTemplateExample:
+      summary: Create a daily template
+      value:
+        name: Water the plants
+        description: Water all the plants in the living room and kitchen
+        tags:
+          - 12
+        starts_at: "08:00:00"
+        ends_at: "08:15:00"
+        enabled: true
+        scheduling:
+          type: daily
+          exclude:
+            - saturday
+            - sunday
+
+    TemplateExample:
+      summary: A single template
+      value:
+        id: 42
+        name: Water the plants
+        description: Water all the plants in the living room and kitchen
+        tags:
+          - 12
+        starts_at: "08:00:00"
+        ends_at: "08:15:00"
+        enabled: true
+        scheduling:
+          type: daily
+          exclude:
+            - saturday
+            - sunday
+
+    TasksCollectionExample:
+      summary: Collection of tasks
+      value:
+        data:
+          - id: 101
+            template_id: 42
+            status: pending
+            date: "2026-07-15"
+          - id: 102
+            template_id: 43
+            status: running
+            date: "2026-07-14"
+            started_at: "09:00:00"
+        meta:
+          total: 2
+          page: 1
+          limit: 20
+          total_pages: 1
+
+    TaskExample:
+      summary: A single task
+      value:
+        id: 102
+        template_id: 43
+        status: running
+        notes: Started a bit later than usual
+        date: "2026-07-14"
+        started_at: "09:00:00"
+
+    UpdateTaskRunningExample:
+      summary: Mark the task as running
+      value:
+        status: running
+        started_at: "09:00:00"
+
+    UpdateTaskFinishedExample:
+      summary: Mark the task as finished
+      value:
+        status: finished
+        ended_at: "09:45:00"
+
+    UpdateTaskCancelledExample:
+      summary: Mark the task as cancelled
+      value:
+        status: cancelled
+
+    UpdateTaskMovedExample:
+      summary: Move the task to another date
+      value:
+        status: moved
+        date: "2026-07-16"
+
+    TagsCollectionExample:
+      summary: Collection of tags
+      value:
+        data:
+          - id: 12
+            name: Household
+            description: Chores related to the household
+            type: user-defined
+          - id: 13
+            name: Predefined tag
+            type: predefined
+        meta:
+          total: 2
+          page: 1
+          limit: 20
+          total_pages: 1
+
+    CreateTagExample:
+      summary: Create a user-defined tag
+      value:
+        name: Household
+        description: Chores related to the household
+        type: user-defined
+
+    TagExample:
+      summary: A single tag
+      value:
+        id: 12
+        name: Household
+        description: Chores related to the household
+        type: user-defined
+
+    ConnectivityTestExample:
+      summary: Reachability check result
+      value:
+        ip: 203.0.113.42
+        scheme: https
+
+    AssignedTasksExample:
+      summary: Tasks assigned by the cron hook
+      value:
+        - id: 201
+          template_id: 42
+          status: pending
+          date: "2026-07-15"
+        - id: 202
+          template_id: 44
+          status: pending
+          date: "2026-07-15"
+
+    CalendarExample:
+      summary: Calendar for a three-day period
+      value:
+        from: "2026-07-14"
+        to: "2026-07-16"
+        days:
+          - date: "2026-07-14"
+            tasks:
+              - id: 102
+                template_id: 43
+                status: running
+                date: "2026-07-14"
+                started_at: "09:00:00"
+          - date: "2026-07-15"
+            tasks:
+              - id: 201
+                template_id: 42
+                status: pending
+                date: "2026-07-15"
+          - date: "2026-07-16"
+            tasks: []
+
+    BadRequestExample:
+      summary: Validation error
+      value:
+        status: 400
+        title: Bad Request
+        detail: The request body failed validation
+        errors:
+          - field: name
+            message: must be at least 2 characters long
+          - field: starts_at
+            message: is required
+
+    NotFoundExample:
+      summary: Resource not found
+      value:
+        status: 404
+        title: Not Found
+        detail: Resource with the given id was not found
+
+    MethodNotAllowedExample:
+      summary: Unsupported HTTP method
+      value:
+        status: 405
+        title: Method Not Allowed
+        detail: The HTTP method is not supported for this endpoint
+
+    ServerErrorExample:
+      summary: Unexpected server error
+      value:
+        status: 500
+        title: Internal Server Error
+        detail: An unexpected error occurred while processing the request
